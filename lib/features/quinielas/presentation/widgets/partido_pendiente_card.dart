@@ -31,7 +31,8 @@ class PartidoPendienteCard extends ConsumerStatefulWidget {
   final VoidCallback? onAbrirDetalle;
 
   @override
-  ConsumerState<PartidoPendienteCard> createState() => _PartidoPendienteCardState();
+  ConsumerState<PartidoPendienteCard> createState() =>
+      _PartidoPendienteCardState();
 }
 
 class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
@@ -56,7 +57,9 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
   @override
   void didUpdateWidget(covariant PartidoPendienteCard old) {
     super.didUpdateWidget(old);
-    if (!_modificado && old.partido.pronostico != widget.partido.pronostico) _reiniciarDesdePartido();
+    if (!_modificado && old.partido.pronostico != widget.partido.pronostico) {
+      _reiniciarDesdePartido();
+    }
   }
 
   void _reiniciarDesdePartido() {
@@ -90,7 +93,8 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
     } on AppException catch (e) {
       messenger.showSnackBar(SnackBar(content: Text(e.mensaje)));
       // Si el servidor ya cerró (PRONOSTICOS_CERRADOS) se refresca para mostrar el estado real.
-      if (e.codigo == 'PRONOSTICOS_CERRADOS' || e.codigo == 'TORNEO_NO_ACTIVO') {
+      if (e.codigo == 'PRONOSTICOS_CERRADOS' ||
+          e.codigo == 'TORNEO_NO_ACTIVO') {
         ref.invalidate(quinielaVistaProvider(widget.quinielaId));
       }
     } finally {
@@ -111,7 +115,10 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
     );
     final fase = v.fases[p.faseId];
     final cuenta = editable ? cuentaRegresiva(p.fechaHora, ahora) : null;
-    final puedeGuardar = editable && !v.offline && !_guardando && (_modificado || p.pronostico == null);
+    final puedeGuardar = editable &&
+        !v.offline &&
+        !_guardando &&
+        (_modificado || p.pronostico == null);
 
     String estadoTexto;
     if (v.torneoFinalizado) {
@@ -119,7 +126,8 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
     } else if (p.estado == 'EN_JUEGO') {
       estadoTexto = 'En juego · pronósticos cerrados';
     } else if (!editable) {
-      estadoTexto = 'Cerrado · los pronósticos cierran $minutosCierre min antes';
+      estadoTexto =
+          'Cerrado · los pronósticos cierran $minutosCierre min antes';
     } else {
       estadoTexto = 'Cierra a las ${horaLocal(cierreDe(p.fechaHora))}';
     }
@@ -135,25 +143,40 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
               Text(
                 fechaLocal(p.fechaHora),
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                style: const TextStyle(
+                    color: AppColors.textSecondary, fontSize: 12),
               ),
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Expanded(child: _Lado(nombre: v.nombreEquipo(p.equipoLocalId), valor: _local, activo: editable, onCambio: (n) => setState(() {
-                    _local = n;
-                    _modificado = true;
-                    _guardado = false;
-                  }))),
+                  Expanded(
+                      child: _Lado(
+                          nombre: v.nombreEquipo(p.equipoLocalId),
+                          valor: _local,
+                          activo: editable,
+                          fijo: p.pronostico?.local,
+                          onCambio: (n) => setState(() {
+                                _local = n;
+                                _modificado = true;
+                                _guardado = false;
+                              }))),
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('–', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                    child: Text('–',
+                        style: TextStyle(
+                            fontSize: 22, fontWeight: FontWeight.bold)),
                   ),
-                  Expanded(child: _Lado(nombre: v.nombreEquipo(p.equipoVisitaId), valor: _visita, activo: editable, onCambio: (n) => setState(() {
-                    _visita = n;
-                    _modificado = true;
-                    _guardado = false;
-                  }))),
+                  Expanded(
+                      child: _Lado(
+                          nombre: v.nombreEquipo(p.equipoVisitaId),
+                          valor: _visita,
+                          activo: editable,
+                          fijo: p.pronostico?.visita,
+                          onCambio: (n) => setState(() {
+                                _visita = n;
+                                _modificado = true;
+                                _guardado = false;
+                              }))),
                 ],
               ),
               const SizedBox(height: 8),
@@ -161,8 +184,11 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
                 cuenta != null ? '$estadoTexto · faltan $cuenta' : estadoTexto,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: cuenta != null ? AppColors.sportsOrange : AppColors.textSecondary,
-                  fontWeight: cuenta != null ? FontWeight.w700 : FontWeight.normal,
+                  color: cuenta != null
+                      ? AppColors.sportsOrange
+                      : AppColors.textSecondary,
+                  fontWeight:
+                      cuenta != null ? FontWeight.w700 : FontWeight.normal,
                   fontSize: 12,
                 ),
               ),
@@ -189,7 +215,8 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
                   const Text(
                     'Sin conexión: no se puede guardar',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                    style:
+                        TextStyle(color: AppColors.textSecondary, fontSize: 12),
                   )
                 else
                   ElevatedButton(
@@ -210,42 +237,68 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
 }
 
 class _Lado extends StatelessWidget {
-  const _Lado({required this.nombre, required this.valor, required this.activo, required this.onCambio});
+  const _Lado({
+    required this.nombre,
+    required this.valor,
+    required this.activo,
+    required this.onCambio,
+    this.fijo,
+  });
 
   final String nombre;
   final int valor;
   final bool activo;
   final ValueChanged<int> onCambio;
 
+  /// Goles ya guardados que se muestran cuando no se puede editar.
+  final int? fijo;
+
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(nombre, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis,
+        Text(nombre,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontWeight: FontWeight.w700)),
         const SizedBox(height: 4),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              tooltip: 'Restar gol a $nombre',
-              visualDensity: VisualDensity.compact,
-              icon: const Icon(Icons.remove_circle_outline),
-              onPressed: activo && valor > golesMin ? () => onCambio(valor - 1) : null,
-            ),
-            SizedBox(
-              width: 28,
-              child: Text('$valor', textAlign: TextAlign.center,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-            ),
-            IconButton(
-              tooltip: 'Sumar gol a $nombre',
-              visualDensity: VisualDensity.compact,
-              icon: const Icon(Icons.add_circle_outline),
-              onPressed: activo && valor < golesMax ? () => onCambio(valor + 1) : null,
-            ),
-          ],
-        ),
+        if (!activo)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Text(fijo == null ? '–' : '$fijo',
+                style:
+                    const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+          )
+        else
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                tooltip: 'Restar gol a $nombre',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.remove_circle_outline),
+                onPressed: activo && valor > golesMin
+                    ? () => onCambio(valor - 1)
+                    : null,
+              ),
+              SizedBox(
+                width: 28,
+                child: Text('$valor',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                        fontSize: 22, fontWeight: FontWeight.w800)),
+              ),
+              IconButton(
+                tooltip: 'Sumar gol a $nombre',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.add_circle_outline),
+                onPressed: activo && valor < golesMax
+                    ? () => onCambio(valor + 1)
+                    : null,
+              ),
+            ],
+          ),
       ],
     );
   }

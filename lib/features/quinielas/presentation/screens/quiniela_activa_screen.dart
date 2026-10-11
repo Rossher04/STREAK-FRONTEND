@@ -20,7 +20,6 @@ class QuinielaActivaScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final datos = ref.watch(quinielaVistaProvider(quinielaId));
-    final vista = datos.valueOrNull;
 
     Future<void> refrescar() async {
       ref.invalidate(quinielaVistaProvider(quinielaId));
@@ -29,7 +28,7 @@ class QuinielaActivaScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(vista?.quiniela.nombre ?? 'Quiniela', overflow: TextOverflow.ellipsis),
+        title: const Text('Quiniela'),
         actions: [
           IconButton(
             tooltip: 'Ver y compartir código',

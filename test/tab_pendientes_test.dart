@@ -82,9 +82,9 @@ void main() {
 
     // Steppers: en el abierto suben; en el cerrado están deshabilitados.
     final sumar = _boton('Sumar gol a Leones');
-    expect(sumar, findsNWidgets(3));
+    expect(sumar, findsNWidgets(2), reason: 'el cerrado no muestra steppers');
     final botones = tester.widgetList<IconButton>(sumar).toList();
-    expect(botones.where((b) => b.onPressed != null), hasLength(2));
+    expect(botones.every((b) => b.onPressed != null), isTrue);
   });
 
   testWidgets('los steppers van de 0 a 20 y habilitan guardar', (tester) async {
