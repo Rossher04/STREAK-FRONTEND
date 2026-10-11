@@ -1,8 +1,17 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// Firma de subida: android/key.properties (NO se versiona; ver key.properties.example).
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
 }
 
 android {
@@ -20,29 +29,55 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.streak.quinielas"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
+        // versionCode y versionName salen de `version: 1.0.0+1` en pubspec.yaml.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
     signingConfigs {
         create("release") {
-            storeFile = file("upload-keystore.jks")
-            storePassword = "android"
-            keyAlias = "upload"
-            keyPassword = "android"
+            if (keystorePropertiesFile.exists()) {
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
+                storePassword = keystoreProperties.getProperty("storePassword")
+            }
         }
     }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("release")
+        }
+    }
+}
+
+// Un build de release sin firma no debe producir un paquete inservible: falla con un mensaje claro.
+gradle.taskGraph.whenReady {
+    val esRelease = allTasks.any {
+        it.project == project &&
+            it.name.contains("Release") &&
+            (it.name.startsWith("assemble") || it.name.startsWith("bundle") || it.name.startsWith("package"))
+    }
+    if (esRelease) {
+        if (!keystorePropertiesFile.exists()) {
+            throw GradleException(
+                "Falta android/key.properties. Copia android/key.properties.example a " +
+                    "android/key.properties y completa storePassword, keyPassword, keyAlias y storeFile " +
+                    "con los datos REALES de tu keystore de subida (no se versiona).",
+            )
+        }
+        val faltantes = listOf("storePassword", "keyPassword", "keyAlias", "storeFile")
+            .filter { keystoreProperties.getProperty(it).isNullOrBlank() || keystoreProperties.getProperty(it) == "CAMBIAR" }
+        if (faltantes.isNotEmpty()) {
+            throw GradleException("android/key.properties está incompleto o con valores de ejemplo: ${faltantes.joinToString()}")
+        }
+        val almacen = file(keystoreProperties.getProperty("storeFile"))
+        if (!almacen.exists()) {
+            throw GradleException("No existe el keystore indicado en key.properties (storeFile): ${almacen.absolutePath}")
         }
     }
 }
