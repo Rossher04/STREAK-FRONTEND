@@ -58,7 +58,7 @@ class PartidoResueltoCard extends StatelessWidget {
             children: [
               Text(
                 '${fechaLocal(p.fechaHora)} · ${textoEstado(p)}',
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                style: const TextStyle(color: AppColors.textPrimary, fontSize: 12),
               ),
               const SizedBox(height: 8),
               Row(
@@ -83,7 +83,7 @@ class PartidoResueltoCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 p.pronostico == null ? 'No pronosticaste' : 'Mi pronóstico: ${textoMarcador(p.pronostico)}',
-                style: const TextStyle(color: AppColors.textSecondary),
+                style: const TextStyle(color: AppColors.textPrimary),
               ),
               const SizedBox(height: 8),
               EtiquetaPuntosChip(p),

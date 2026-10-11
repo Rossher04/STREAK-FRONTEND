@@ -45,7 +45,7 @@ class CodigoQuinielaScreen extends ConsumerWidget {
                 Text(q.nombre, style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 8),
                 if (torneo != null)
-                  Text(torneo.nombre, style: const TextStyle(color: AppColors.textSecondary)),
+                  Text(torneo.nombre, style: const TextStyle(color: AppColors.textPrimary)),
                 const SizedBox(height: 28),
                 Container(
                   width: double.infinity,
@@ -69,7 +69,7 @@ class CodigoQuinielaScreen extends ConsumerWidget {
                 Text(
                   'Hasta ${q.maxParticipantes} participantes. Comparte este código para que se unan.',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.textSecondary),
+                  style: const TextStyle(color: AppColors.textPrimary),
                 ),
                 const Spacer(),
                 ElevatedButton.icon(

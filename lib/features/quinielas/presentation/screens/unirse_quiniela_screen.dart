@@ -95,7 +95,7 @@ class _UnirseQuinielaScreenState extends ConsumerState<UnirseQuinielaScreen> {
           children: [
             const Text(
               'Pide el código de 6 caracteres al administrador de la quiniela.',
-              style: TextStyle(color: AppColors.textSecondary),
+              style: TextStyle(color: AppColors.textPrimary),
             ),
             const SizedBox(height: 20),
             TextField(

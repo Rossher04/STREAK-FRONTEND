@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/icono_pro.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../application/quinielas_providers.dart';
 import '../../domain/models.dart';
@@ -164,7 +165,7 @@ class _HomeDrawer extends ConsumerWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.workspace_premium, color: AppColors.goldAccent),
+              leading: const IconoPro(radio: 16),
               title: Text(user?.esPro == true ? 'Tu plan PRO' : 'Hazte PRO'),
               onTap: () {
                 Navigator.pop(context);
@@ -286,7 +287,7 @@ class _Mensaje extends StatelessWidget {
         const SizedBox(height: 80),
         Icon(icono, size: 56, color: AppColors.textSecondary),
         const SizedBox(height: 16),
-        Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary)),
+        Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textPrimary)),
         const SizedBox(height: 24),
         for (final a in acciones) Padding(padding: const EdgeInsets.only(bottom: 12), child: a),
       ],

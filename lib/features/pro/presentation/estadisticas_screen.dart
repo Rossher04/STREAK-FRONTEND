@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/icono_pro.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../quinielas/application/quinielas_providers.dart';
 import '../../quinielas/domain/quiniela_vista.dart';
@@ -28,7 +29,7 @@ class EstadisticasScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.lock_outline, size: 56, color: AppColors.goldAccent),
+                const IconoPro(radio: 32, icono: Icons.lock_outline),
                 const SizedBox(height: 16),
                 const Text('Las estadísticas avanzadas son parte del plan PRO.', textAlign: TextAlign.center),
                 const SizedBox(height: 16),
@@ -103,7 +104,7 @@ class _Contenido extends StatelessWidget {
         const SizedBox(height: 8),
         const Text(
           'Solo cuentan los partidos finalizados. Un partido sin pronóstico vale 0 y rompe la racha.',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          style: TextStyle(color: AppColors.textPrimary, fontSize: 12),
         ),
       ],
     );
@@ -131,7 +132,7 @@ class _Dato extends StatelessWidget {
                 children: [
                   Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
-                  Text(detalle, style: const TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+                  Text(detalle, style: const TextStyle(color: AppColors.textPrimary, fontSize: 13)),
                 ],
               ),
             ),

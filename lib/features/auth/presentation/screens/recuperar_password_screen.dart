@@ -62,7 +62,7 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
                   const Text(
                     'Abre el enlace del correo (vale una hora) para elegir una contraseña nueva.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
@@ -77,7 +77,7 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
                   children: [
                     const Text(
                       'Ingresa el correo con el que te registraste.',
-                      style: TextStyle(color: AppColors.textSecondary),
+                      style: TextStyle(color: AppColors.textPrimary),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(

@@ -81,14 +81,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const Text(
                     AppConstants.appTagline,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                    style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
                   ),
                   const SizedBox(height: 28),
                   if (ref.watch(authControllerProvider).message != null) ...[
                     Text(
                       ref.watch(authControllerProvider).message!,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.sportsOrange),
+                      style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -109,6 +109,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       labelText: 'Contraseña',
                       prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primaryBlue),
                       suffixIcon: IconButton(
+                      tooltip: _obscurePassword ? 'Mostrar contraseña' : 'Ocultar contraseña',
                         icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
@@ -144,8 +145,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: const Text(
                           'Regístrate aquí',
                           style: TextStyle(
-                            color: AppColors.sportsOrange,
+                            color: AppColors.primaryBlue,
                             fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
                           ),
                         ),
                       ),

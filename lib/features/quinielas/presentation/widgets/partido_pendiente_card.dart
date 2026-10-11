@@ -144,7 +144,7 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
                 fechaLocal(p.fechaHora),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                    color: AppColors.textSecondary, fontSize: 12),
+                    color: AppColors.textPrimary, fontSize: 12),
               ),
               const SizedBox(height: 8),
               if (editable)
@@ -207,8 +207,8 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: cuenta != null
-                      ? AppColors.sportsOrange
-                      : AppColors.textSecondary,
+                      ? AppColors.primaryBlue
+                      : AppColors.textPrimary,
                   fontWeight:
                       cuenta != null ? FontWeight.w700 : FontWeight.normal,
                   fontSize: 12,
@@ -219,7 +219,7 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
                 const Text(
                   avisoNoventa,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.sportsOrange, fontSize: 11),
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 12),
                 ),
               ],
               if (!editable) ...[
@@ -238,7 +238,7 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
                     'Sin conexión: no se puede guardar',
                     textAlign: TextAlign.center,
                     style:
-                        TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                        TextStyle(color: AppColors.textPrimary, fontSize: 12),
                   )
                 else
                   ElevatedButton(
@@ -298,22 +298,25 @@ class _Lado extends StatelessWidget {
             children: [
               IconButton(
                 tooltip: 'Restar gol a $nombre',
-                visualDensity: VisualDensity.compact,
                 icon: const Icon(Icons.remove_circle_outline),
                 onPressed: activo && valor > golesMin
                     ? () => onCambio(valor - 1)
                     : null,
               ),
-              SizedBox(
-                width: 28,
-                child: Text('$valor',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontSize: 22, fontWeight: FontWeight.w800)),
+              Semantics(
+                label: 'Goles de $nombre',
+                value: '$valor',
+                excludeSemantics: true,
+                child: SizedBox(
+                  width: 28,
+                  child: Text('$valor',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontSize: 22, fontWeight: FontWeight.w800)),
+                ),
               ),
               IconButton(
                 tooltip: 'Sumar gol a $nombre',
-                visualDensity: VisualDensity.compact,
                 icon: const Icon(Icons.add_circle_outline),
                 onPressed: activo && valor < golesMax
                     ? () => onCambio(valor + 1)

@@ -88,21 +88,26 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
         padding: const EdgeInsets.all(24),
         children: [
           Center(
-            child: GestureDetector(
-              onTap: _pickPhoto,
-              child: CircleAvatar(
-                radius: 44,
-                backgroundColor: AppColors.creamBackground,
-                backgroundImage: imagen,
-                child: imagen == null
-                    ? const Icon(Icons.camera_alt, color: AppColors.primaryBlue, size: 32)
-                    : null,
+            child: Semantics(
+              button: true,
+              label: 'Cambiar foto de perfil',
+              excludeSemantics: true,
+              child: GestureDetector(
+                onTap: _pickPhoto,
+                child: CircleAvatar(
+                  radius: 44,
+                  backgroundColor: AppColors.creamBackground,
+                  backgroundImage: imagen,
+                  child: imagen == null
+                      ? const Icon(Icons.camera_alt, color: AppColors.primaryBlue, size: 32)
+                      : null,
+                ),
               ),
             ),
           ),
           const SizedBox(height: 8),
           const Text('Toca para cambiar foto',
-              textAlign: TextAlign.center, style: TextStyle(color: AppColors.textSecondary)),
+              textAlign: TextAlign.center, style: TextStyle(color: AppColors.textPrimary)),
           const SizedBox(height: 20),
           TextFormField(
             key: ValueKey('username-${user?.username}'),

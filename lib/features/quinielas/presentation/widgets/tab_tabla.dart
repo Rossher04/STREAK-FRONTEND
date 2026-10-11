@@ -50,12 +50,15 @@ class TabTabla extends StatelessWidget {
                               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
                         ),
                         const SizedBox(width: 8),
-                        CircleAvatar(
-                          radius: 16,
-                          backgroundColor: AppColors.creamBackground,
-                          child: Text(
-                            f.username.isEmpty ? '?' : f.username[0].toUpperCase(),
-                            style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
+                        ExcludeSemantics(
+                          // La inicial es decorativa: el nombre ya se lee en el título.
+                          child: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: AppColors.creamBackground,
+                            child: Text(
+                              f.username.isEmpty ? '?' : f.username[0].toUpperCase(),
+                              style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ),
                       ],

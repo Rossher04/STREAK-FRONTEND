@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/icono_pro.dart';
 import '../../auth/application/auth_controller.dart';
 import '../application/pago_pro_controller.dart';
 import '../data/pro_repository.dart';
@@ -49,7 +50,7 @@ class _TuPlanPro extends ConsumerWidget {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
         children: [
-          const Icon(Icons.workspace_premium, size: 72, color: AppColors.goldAccent),
+          const Center(child: IconoPro(radio: 40)),
           const SizedBox(height: 8),
           Text(recienActivado ? '¡PRO activado!' : 'Tu plan PRO está activo',
               textAlign: TextAlign.center,
@@ -67,7 +68,7 @@ class _TuPlanPro extends ConsumerWidget {
               ]),
             ),
           const SizedBox(height: 8),
-          const Text(textoSinVentaja, style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+          const Text(textoSinVentaja, style: TextStyle(color: AppColors.textPrimary, fontSize: 13)),
           const SizedBox(height: 24),
           Text('Historial de pagos', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
@@ -81,11 +82,11 @@ class _TuPlanPro extends ConsumerWidget {
               TextButton(onPressed: () => ref.invalidate(pagosProProvider), child: const Text('Reintentar')),
             ]),
             data: (lista) => lista.isEmpty
-                ? const Text('Aún no hay pagos registrados.', style: TextStyle(color: AppColors.textSecondary))
+                ? const Text('Aún no hay pagos registrados.', style: TextStyle(color: AppColors.textPrimary))
                 : Column(children: [for (final p in lista) _FilaPago(p)]),
           ),
           const SizedBox(height: 16),
-          const Text(textoComoCancelar, style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+          const Text(textoComoCancelar, style: TextStyle(color: AppColors.textPrimary, fontSize: 13)),
         ],
       ),
     );

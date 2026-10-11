@@ -36,7 +36,7 @@ class AppTheme {
           fontSize: 15,
         ),
         bodyMedium: baseTextTheme.bodyMedium?.copyWith(
-          color: AppColors.textSecondary,
+          color: AppColors.textPrimary,
           fontSize: 13,
         ),
       ),
@@ -100,8 +100,8 @@ class AppTheme {
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.error),
         ),
-        labelStyle: const TextStyle(color: AppColors.textSecondary),
-        hintStyle: const TextStyle(color: AppColors.textSecondary),
+        labelStyle: const TextStyle(color: AppColors.textPrimary),
+        hintStyle: const TextStyle(color: AppColors.textPrimary),
       ),
       cardTheme: CardThemeData(
         color: AppColors.cardBackground,

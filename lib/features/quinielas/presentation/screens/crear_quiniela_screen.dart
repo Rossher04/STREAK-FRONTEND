@@ -102,7 +102,7 @@ class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
                   child: Text(
                     'No hay torneos activos por ahora. Vuelve a intentarlo más tarde.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(color: AppColors.textPrimary),
                   ),
                 );
               }
@@ -130,7 +130,7 @@ class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
                   if (actual.formato == 'GRUPOS_ELIMINATORIA')
                     const Text(
                       'En eliminatoria solo cuenta el tiempo reglamentario (90\'). Prórroga y penales no puntúan (RN-23).',
-                      style: TextStyle(color: AppColors.sportsOrange, fontSize: 12),
+                      style: TextStyle(color: AppColors.textPrimary, fontSize: 12),
                     ),
                   const SizedBox(height: 16),
                   Text('Participantes: ${max.round()} (mín. ${AppConstants.minParticipantes}, máx. $tope)'),

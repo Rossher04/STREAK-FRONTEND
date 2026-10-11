@@ -65,7 +65,7 @@ class _CambioPasswordForzadoScreenState
                 const Text(
                   'Debes cambiar la contraseña temporal antes de cualquier otra operación (RN-07). Doble confirmación obligatoria.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 24),
                 TextFormField(

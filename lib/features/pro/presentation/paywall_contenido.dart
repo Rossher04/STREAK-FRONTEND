@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/icono_pro.dart';
 import '../application/pago_pro_controller.dart';
 
 const textoPagoUnico = 'Pago único · sin renovación automática';
@@ -41,7 +42,7 @@ class PaywallContenido extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
-        const Icon(Icons.workspace_premium, size: 64, color: AppColors.goldAccent),
+        const Center(child: IconoPro(radio: 36)),
         const SizedBox(height: 8),
         const Text('STREAK PRO',
             textAlign: TextAlign.center,
@@ -80,7 +81,7 @@ class PaywallContenido extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         const Text(textoComoCancelar,
-            key: ValueKey('cancelar'), style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+            key: ValueKey('cancelar'), style: TextStyle(color: AppColors.textPrimary, fontSize: 13)),
         const SizedBox(height: 20),
         if (motivoNoDisponible != null)
           Padding(
@@ -117,7 +118,7 @@ class PaywallContenido extends StatelessWidget {
         const Text(
           'El pago lo procesa Stripe: los datos de tu tarjeta nunca pasan por STREAK.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          style: TextStyle(color: AppColors.textPrimary, fontSize: 12),
         ),
       ],
     );

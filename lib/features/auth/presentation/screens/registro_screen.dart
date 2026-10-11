@@ -71,7 +71,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
               children: [
                 const Text(
                   'El usuario no se podrá cambiar después (RN-09).',
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -109,6 +109,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
                   decoration: InputDecoration(
                     labelText: 'Contraseña',
                     suffixIcon: IconButton(
+                      tooltip: _obscure ? 'Mostrar contraseña' : 'Ocultar contraseña',
                       onPressed: () => setState(() => _obscure = !_obscure),
                       icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
                     ),

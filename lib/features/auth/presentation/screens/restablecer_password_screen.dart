@@ -70,7 +70,7 @@ class _RestablecerPasswordScreenState extends ConsumerState<RestablecerPasswordS
                 const Text(
                   'Elige tu nueva contraseña. Después iniciarás sesión con ella.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textSecondary),
+                  style: TextStyle(color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 24),
                 TextFormField(

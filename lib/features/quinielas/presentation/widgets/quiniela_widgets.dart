@@ -68,7 +68,7 @@ class ErrorReintentar extends StatelessWidget {
             Text(
               error is AppException ? (error as AppException).mensaje : 'No se pudo cargar la información.',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: const TextStyle(color: AppColors.textPrimary),
             ),
             const SizedBox(height: 16),
             ElevatedButton(onPressed: onRetry, child: const Text('REINTENTAR')),
@@ -95,7 +95,7 @@ class ListaVacia extends StatelessWidget {
         const SizedBox(height: 60),
         Icon(icono, size: 56, color: AppColors.textSecondary),
         const SizedBox(height: 16),
-        Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary)),
+        Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textPrimary)),
       ],
     );
   }
@@ -116,9 +116,14 @@ class BannerAviso extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
         children: [
-          Icon(icono, size: 18, color: color),
+          Icon(icono, size: 18, color: AppColors.textPrimary),
           const SizedBox(width: 8),
-          Expanded(child: Text(texto, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13))),
+          Expanded(
+            child: Text(
+              texto,
+              style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
+            ),
+          ),
         ],
       ),
     );
@@ -135,11 +140,11 @@ class EtiquetaPuntosChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final noCuenta = partido.estado == 'SUSPENDIDO' || partido.estado == 'CANCELADO';
     final color = noCuenta || partido.pronostico == null
-        ? AppColors.textSecondary
+        ? AppColors.textPrimary
         : switch (partido.puntos) {
             5 => AppColors.success,
             4 => AppColors.primaryBlue,
-            3 => AppColors.warning,
+            3 => AppColors.sportsOrange,
             _ => AppColors.error,
           };
     final texto = etiquetaPuntos(
@@ -154,7 +159,7 @@ class EtiquetaPuntosChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color),
       ),
-      child: Text(texto, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 12)),
+      child: Text(texto, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 12)),
     );
   }
 }

@@ -138,7 +138,13 @@ class Encabezado extends StatelessWidget {
               ],
             ),
           ),
-          Column(
+          Semantics(
+            container: true,
+            excludeSemantics: true,
+            label: fila == null
+                ? 'Tu puesto no está disponible'
+                : 'Tu puesto: ${etiquetaPuesto(fila.posicion, vista.tabla.length)}, ${fila.puntos} puntos',
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
@@ -152,6 +158,7 @@ class Encabezado extends StatelessWidget {
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
               ),
             ],
+          ),
           ),
         ],
       ),
