@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/application/auth_controller.dart';
+import '../../features/auth/presentation/screens/enlace_invalido_screen.dart';
+import 'deep_links.dart';
 import '../../features/auth/domain/usuario.dart';
 import '../../features/auth/presentation/screens/cambio_password_forzado_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
@@ -28,8 +30,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/',
     refreshListenable: refresh,
     redirect: (context, state) {
+      // Deep link de restablecer contraseña: se traduce a la ruta interna sin importar la sesión.
+      final deepLink = rutaDesdeDeepLink(state.uri);
+      if (deepLink != null) return deepLink;
+
       final auth = ref.read(authControllerProvider);
       final loc = state.matchedLocation;
+      // Estas pantallas funcionan con cualquier estado de sesión (incluida la carga inicial).
+      if (loc.startsWith('/restablecer/') || loc == rutaEnlaceInvalido) return null;
       final public = loc == '/login' ||
           loc == '/register' ||
           loc == '/recuperar' ||
@@ -61,6 +69,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           uid: state.pathParameters['uid']!,
           token: state.pathParameters['token']!,
         ),
+      ),
+      GoRoute(
+        path: rutaEnlaceInvalido,
+        name: 'enlace_invalido',
+        builder: (context, state) => const EnlaceInvalidoScreen(),
       ),
       GoRoute(
         path: '/cambio-password-forzado',
