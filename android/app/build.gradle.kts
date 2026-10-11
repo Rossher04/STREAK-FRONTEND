@@ -75,6 +75,25 @@ gradle.taskGraph.whenReady {
         if (faltantes.isNotEmpty()) {
             throw GradleException("android/key.properties está incompleto o con valores de ejemplo: ${faltantes.joinToString()}")
         }
+        // Flutter pasa los --dart-define como base64("CLAVE=valor") separados por comas.
+        val defines = (project.findProperty("dart-defines") as String?)
+            ?.split(",")
+            ?.mapNotNull { runCatching { String(java.util.Base64.getDecoder().decode(it)) }.getOrNull() }
+            ?.filter { it.contains("=") }
+            ?.associate { it.substringBefore("=") to it.substringAfter("=") }
+            ?: emptyMap()
+        val correo = defines["SUPPORT_EMAIL"].orEmpty().trim()
+        if (correo.isEmpty() || correo.contains("[") || !correo.contains("@")) {
+            throw GradleException(
+                "Falta --dart-define=SUPPORT_EMAIL=<correo-de-soporte> (o es un marcador). " +
+                    "La app lo muestra al pedir la eliminación de cuenta y Play lo exige.",
+            )
+        }
+        if (!defines["API_BASE_URL"].orEmpty().startsWith("https://")) {
+            throw GradleException(
+                "Falta --dart-define=API_BASE_URL=https://<tu-backend>/api (sin él, un release apuntaría al backend local).",
+            )
+        }
         val almacen = file(keystoreProperties.getProperty("storeFile"))
         if (!almacen.exists()) {
             throw GradleException("No existe el keystore indicado en key.properties (storeFile): ${almacen.absolutePath}")

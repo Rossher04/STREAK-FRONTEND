@@ -7,6 +7,9 @@ class ApiConstants {
   // Sin ella se usa el backend local (10.0.2.2 = localhost de la PC desde el emulador Android).
   static const String _envBaseUrl = String.fromEnvironment('API_BASE_URL');
 
+  /// Valor de --dart-define=API_BASE_URL (vacío si no se definió).
+  static String get envBaseUrl => _envBaseUrl;
+
   static String get baseUrl {
     if (_envBaseUrl.isNotEmpty) return _envBaseUrl;
     if (kIsWeb) return 'http://localhost:8000/api';

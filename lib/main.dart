@@ -7,12 +7,24 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'core/config/validacion_release.dart';
+import 'core/constants/api_constants.dart';
 import 'core/constants/app_constants.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Segunda red tras el chequeo de Gradle: un release con marcadores de desarrollo no debe arrancar.
+  if (kReleaseMode) {
+    final problemas = problemasDeConfiguracion(
+      correoSoporte: AppConstants.correoSoporte,
+      apiBaseUrl: ApiConstants.envBaseUrl,
+    );
+    if (problemas.isNotEmpty) {
+      throw StateError('Configuración de release incompleta: ${problemas.join(' | ')}');
+    }
+  }
   await initializeDateFormatting('es');
   await Hive.initFlutter();
   // PaymentSheet solo existe en Android e iOS; sin clave publicable el pago queda deshabilitado.
