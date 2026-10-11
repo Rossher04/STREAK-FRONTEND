@@ -160,7 +160,7 @@ void main() {
 
   test('providers: misQuinielasProvider y torneosActivosProvider leen la API real', () async {
     await a.registrarNuevo('prov');
-    expect(await a.container.read(misQuinielasProvider.future), isEmpty);
+    expect((await a.container.read(misQuinielasProvider.future)).items, isEmpty);
     final activos = await a.container.read(torneosActivosProvider.future);
     expect(activos.every((t) => t.esActivo), isTrue);
     expect(activos, isNotEmpty);

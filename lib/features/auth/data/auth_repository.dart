@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../../core/errors/app_exception.dart';
+import '../../../core/storage/cache_store.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../domain/usuario.dart';
 
@@ -12,10 +13,13 @@ class FotoPerfil {
 }
 
 class AuthRepository {
-  AuthRepository(this._dio, this._storage);
+  AuthRepository(this._dio, this._storage, [this._cache]);
 
   final Dio _dio;
   final SecureStorageService _storage;
+  final CacheStore? _cache;
+
+  String _clavePerfil(String username) => 'perfil_$username';
 
   Future<Usuario> login({
     required String username,
@@ -110,23 +114,31 @@ class AuthRepository {
     await _storage.clearSession();
   }
 
-  /// Restaura la sesión guardada. Sin conexión usa los últimos datos conocidos
-  /// (modo lectura, RN-74); si el servidor rechaza el token devuelve null.
-  Future<Usuario?> restoreSession() async {
+  /// Restaura la sesión guardada. Sin conexión usa la última copia del perfil
+  /// (modo lectura, RN-74) e indica de cuándo es; si el servidor rechaza el token devuelve null.
+  Future<({Usuario usuario, DateTime? offlineDesde})?> restoreSession() async {
     final token = await _storage.getAccessToken();
     final username = await _storage.getUsername();
     if (token == null || username == null) return null;
     try {
-      return await _cargarPerfil(username);
+      return (usuario: await _cargarPerfil(username), offlineDesde: null);
     } on AppException catch (e) {
       if (e.codigo == 'NETWORK_ERROR' || e.codigo == 'TIMEOUT_ERROR') {
-        return Usuario(
+        final copia = await _cache?.leer(_clavePerfil(username));
+        if (copia != null) {
+          return (
+            usuario: Usuario.fromJson(copia['raw'] as Map<String, dynamic>),
+            offlineDesde: DateTime.parse(copia['guardado'] as String),
+          );
+        }
+        // Sin copia (primer arranque tras actualizar): solo se conoce el usuario.
+        return (usuario: Usuario(
           id: 0,
           username: username,
           email: '',
           esPro: await _storage.isPro(),
           passTemporal: await _storage.isPassTemporal(),
-        );
+        ), offlineDesde: null);
       }
       if (await _storage.getAccessToken() == null) return null;
       rethrow;
@@ -175,6 +187,10 @@ class AuthRepository {
     try {
       final resp = await _dio.get(ApiConstants.usuarioMe);
       user = Usuario.fromJson(resp.data as Map<String, dynamic>);
+      await _cache?.guardar(_clavePerfil(user.username), {
+        'guardado': DateTime.now().toUtc().toIso8601String(),
+        'raw': resp.data,
+      });
     } on DioException catch (e) {
       final ex = AppException.fromDioError(e);
       if (e.response?.statusCode != 403 || ex.codigo != 'ACCESO_DENEGADO') throw ex;

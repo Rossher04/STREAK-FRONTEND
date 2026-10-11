@@ -11,6 +11,8 @@ class QuinielasRepository {
   final Dio _dio;
   final CacheStore _cache;
 
+  Future<dynamic> _get(String ruta) async => (await _dio.get(ruta)).data;
+
   Future<T> _call<T>(Future<T> Function() request) async {
     try {
       return await request();
@@ -22,11 +24,50 @@ class QuinielasRepository {
   List<Map<String, dynamic>> _lista(dynamic data) =>
       (data as List).cast<Map<String, dynamic>>();
 
-  /// GET /torneos/ (activos y finalizados; los borradores no se publican).
-  Future<List<Torneo>> torneos() => _call(() async {
-        final resp = await _dio.get(ApiConstants.torneos);
-        return _lista(resp.data).map(Torneo.fromJson).toList();
-      });
+  /// GET /torneos/ (activos y finalizados; los borradores no se publican). Datos públicos: sin red
+  /// se usa la última copia (solo sirve para mostrar nombres de torneo).
+  Future<List<Torneo>> torneos() async {
+    try {
+      final raw = await _call(() => _get(ApiConstants.torneos));
+      await _guardarCopia('torneos', raw);
+      return _lista(raw).map(Torneo.fromJson).toList();
+    } on AppException catch (e) {
+      final copia = await _copiaSiSinRed(e, 'torneos');
+      if (copia == null) rethrow;
+      return _lista(copia.raw).map(Torneo.fromJson).toList();
+    }
+  }
+
+  Future<void> _guardarCopia(String clave, dynamic raw) =>
+      _cache.guardar(clave, {'guardado': DateTime.now().toUtc().toIso8601String(), 'raw': raw});
+
+  /// La copia guardada si el error es de red (RN-74); null si es otro error o no hay copia.
+  Future<({dynamic raw, DateTime desde})?> _copiaSiSinRed(AppException e, String clave) async {
+    if (e.codigo != 'NETWORK_ERROR' && e.codigo != 'TIMEOUT_ERROR') return null;
+    final guardado = await _cache.leer(clave);
+    if (guardado == null) return null;
+    return (raw: guardado['raw'], desde: DateTime.parse(guardado['guardado'] as String));
+  }
+
+  Future<Listado<Quiniela>> _listadoConCopia(String clave, String ruta) async {
+    try {
+      final raw = await _call(() => _get(ruta));
+      await _guardarCopia(clave, raw);
+      return Listado(items: _lista(raw).map(Quiniela.fromJson).toList());
+    } on AppException catch (e) {
+      final copia = await _copiaSiSinRed(e, clave);
+      if (copia == null) rethrow;
+      return Listado(items: _lista(copia.raw).map(Quiniela.fromJson).toList(), offlineDesde: copia.desde);
+    }
+  }
+
+  /// /quinielas/mias/ con copia por usuario para el modo lectura sin conexión.
+  Future<Listado<Quiniela>> miasConCopia(int usuarioId) =>
+      _listadoConCopia('u${usuarioId}_mias', ApiConstants.quinielasMias);
+
+  /// /quinielas/historial/ con copia por usuario.
+  Future<Listado<Quiniela>> historialConCopia(int usuarioId) =>
+      _listadoConCopia('u${usuarioId}_historial', ApiConstants.quinielasHistorial);
 
   Future<List<Quiniela>> mias() => _call(() async {
         final resp = await _dio.get(ApiConstants.quinielasMias);
@@ -63,8 +104,6 @@ class QuinielasRepository {
   Future<void> unirse(String codigo) => _call(() async {
         await _dio.post(ApiConstants.quinielasUnirse, data: {'codigo': codigo.trim().toUpperCase()});
       });
-
-  Future<dynamic> _get(String ruta) async => (await _dio.get(ruta)).data;
 
   /// Carga todo lo de la quiniela activa. Sin red (RN-74) devuelve lo último guardado para
   /// ese usuario; si nunca se guardó nada, propaga el error de red.

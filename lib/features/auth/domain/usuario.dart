@@ -63,11 +63,15 @@ class AuthSession {
     required this.status,
     this.user,
     this.message,
+    this.offlineDesde,
   });
 
   final AuthStatus status;
   final Usuario? user;
   final String? message;
+
+  /// != null: el usuario sale de la copia guardada (sin conexión, RN-74) de ese instante (UTC).
+  final DateTime? offlineDesde;
 
   static const unknown = AuthSession(status: AuthStatus.unknown);
   static const loggedOut = AuthSession(status: AuthStatus.unauthenticated);

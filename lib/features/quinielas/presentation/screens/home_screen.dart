@@ -8,6 +8,7 @@ import '../../../../core/widgets/icono_pro.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../application/quinielas_providers.dart';
 import '../../domain/models.dart';
+import '../widgets/quiniela_widgets.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -201,10 +202,12 @@ class _QuinielaList extends ConsumerWidget {
     Future<void> refrescar() async {
       ref.invalidate(torneosProvider);
       ref.invalidate(provider);
-      await ref.read(provider.future).catchError((_) => <Quiniela>[]);
+      // Al volver la red también se actualiza el perfil (y desaparece el aviso sin conexión).
+      await ref.read(authControllerProvider.notifier).refrescarPerfil().then((_) {}, onError: (_) {});
+      await ref.read(provider.future).then((_) {}, onError: (_) {});
     }
 
-    return RefreshIndicator(
+    final lista = RefreshIndicator(
       onRefresh: refrescar,
       child: datos.when(
         loading: () => ListView(
@@ -221,7 +224,8 @@ class _QuinielaList extends ConsumerWidget {
             ElevatedButton(onPressed: () => ref.invalidate(provider), child: const Text('REINTENTAR')),
           ],
         ),
-        data: (items) {
+        data: (listado) {
+          final items = listado.items;
           if (items.isEmpty) {
             return historial
                 ? const _Mensaje(
@@ -267,6 +271,15 @@ class _QuinielaList extends ConsumerWidget {
           );
         },
       ),
+    );
+
+    final offlineDesde = datos.valueOrNull?.offlineDesde;
+    if (offlineDesde == null) return lista;
+    return Column(
+      children: [
+        BannerAviso(icono: Icons.wifi_off, texto: 'Sin conexión · datos de ${horaLocal(offlineDesde)}'),
+        Expanded(child: lista),
+      ],
     );
   }
 }

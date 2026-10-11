@@ -7,7 +7,11 @@ import '../data/auth_repository.dart';
 import '../domain/usuario.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  return AuthRepository(ref.watch(dioProvider), ref.watch(secureStorageProvider));
+  return AuthRepository(
+    ref.watch(dioProvider),
+    ref.watch(secureStorageProvider),
+    ref.watch(cacheStoreProvider),
+  );
 });
 
 final authControllerProvider =
@@ -23,21 +27,23 @@ class AuthController extends Notifier<AuthSession> {
   AuthRepository get _repo => ref.read(authRepositoryProvider);
 
   Future<void> _restore() async {
-    Usuario? user;
+    ({Usuario usuario, DateTime? offlineDesde})? restaurada;
     try {
-      user = await _repo.restoreSession();
+      restaurada = await _repo.restoreSession();
     } catch (_) {
-      user = null;
+      restaurada = null;
     }
-    if (user == null) {
+    if (restaurada == null) {
       state = AuthSession.loggedOut;
       return;
     }
+    final user = restaurada.usuario;
     state = AuthSession(
       status: user.passTemporal
           ? AuthStatus.needsPasswordChange
           : AuthStatus.authenticated,
       user: user,
+      offlineDesde: restaurada.offlineDesde,
     );
   }
 
@@ -53,6 +59,8 @@ class AuthController extends Notifier<AuthSession> {
   /// Llamado por el interceptor cuando el refresh token ya no es válido.
   void sesionExpirada() {
     if (state.status == AuthStatus.unauthenticated) return;
+    // La sesión ya no es válida: no se deja en el teléfono la copia offline de esa cuenta.
+    ref.read(cacheStoreProvider).limpiar();
     state = const AuthSession(
       status: AuthStatus.unauthenticated,
       message: 'Tu sesión expiró. Vuelve a iniciar sesión.',
@@ -118,7 +126,7 @@ class AuthController extends Notifier<AuthSession> {
   }
 
   Future<void> refrescarPerfil() async {
-    final user = await _repo.refrescarPerfil();
+    final user = await _repo.refrescarPerfil(); // si falla, se conserva la copia actual
     state = AuthSession(
       status: user.passTemporal ? AuthStatus.needsPasswordChange : AuthStatus.authenticated,
       user: user,

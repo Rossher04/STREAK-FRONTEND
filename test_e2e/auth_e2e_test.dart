@@ -106,7 +106,8 @@ void main() {
     // restoreSession hace una llamada autenticada: el interceptor debe renovar.
     final user = await app.container.read(authRepositoryProvider).restoreSession();
     expect(user, isNotNull);
-    expect(user!.username, 'ana');
+    expect(user!.usuario.username, 'ana');
+    expect(user.offlineDesde, isNull);
     expect(app.storage.datos['access'], isNot('token-invalido'));
     expect(app.storage.datos['refresh'], refreshValido);
   });

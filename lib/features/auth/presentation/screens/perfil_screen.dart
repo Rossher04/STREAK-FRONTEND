@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../quinielas/presentation/widgets/quiniela_widgets.dart';
 import '../../application/auth_controller.dart';
 import '../../data/auth_repository.dart';
 
@@ -82,11 +83,19 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     } else if (fotoUrl != null) {
       imagen = NetworkImage(fotoUrl);
     }
+    final offlineDesde = ref.watch(authControllerProvider.select((s) => s.offlineDesde));
     return Scaffold(
       appBar: AppBar(title: const Text('Mi perfil')),
       body: ListView(
         padding: const EdgeInsets.all(24),
         children: [
+          if (offlineDesde != null) ...[
+            BannerAviso(
+              icono: Icons.wifi_off,
+              texto: 'Sin conexión · datos de ${horaLocal(offlineDesde)}',
+            ),
+            const SizedBox(height: 16),
+          ],
           Center(
             child: Semantics(
               button: true,
@@ -141,8 +150,10 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
           ),
           const SizedBox(height: 12),
           ElevatedButton(
-            onPressed: _guardando ? null : _save,
-            child: Text(_guardando ? 'GUARDANDO…' : 'GUARDAR CAMBIOS'),
+            onPressed: (_guardando || offlineDesde != null) ? null : _save,
+            child: Text(_guardando
+                ? 'GUARDANDO…'
+                : (offlineDesde != null ? 'SIN CONEXIÓN' : 'GUARDAR CAMBIOS')),
           ),
           const SizedBox(height: 24),
           const Divider(),

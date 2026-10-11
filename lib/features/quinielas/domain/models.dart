@@ -1,3 +1,14 @@
+/// Lista devuelta por la API o, sin conexión (RN-74), la última copia guardada.
+/// `offlineDesde` != null indica que son datos guardados en ese instante (UTC).
+class Listado<T> {
+  const Listado({required this.items, this.offlineDesde});
+
+  final List<T> items;
+  final DateTime? offlineDesde;
+
+  bool get offline => offlineDesde != null;
+}
+
 class Torneo {
   const Torneo({
     required this.id,
