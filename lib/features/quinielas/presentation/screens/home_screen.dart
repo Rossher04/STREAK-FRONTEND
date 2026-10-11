@@ -118,7 +118,9 @@ class _HomeDrawer extends ConsumerWidget {
     final user = ref.watch(authControllerProvider).user;
     final foto = user?.fotoUrl;
     return Drawer(
+      // top: false: la cabecera azul ya cubre la barra de estado (con SafeArea quedaba una franja blanca).
       child: SafeArea(
+        top: false,
         child: Column(
           children: [
             UserAccountsDrawerHeader(
@@ -163,7 +165,7 @@ class _HomeDrawer extends ConsumerWidget {
               },
             ),
             ListTile(
-              leading: const IconoPro(radio: 16),
+              leading: const SizedBox(width: 24, child: Center(child: IconoPro(radio: 12))),
               title: Text(user?.esPro == true ? 'Tu plan PRO' : 'Hazte PRO'),
               onTap: () {
                 Navigator.pop(context);
