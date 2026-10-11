@@ -1,8 +1,9 @@
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../application/auth_controller.dart';
@@ -138,8 +139,44 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             onPressed: _guardando ? null : _save,
             child: Text(_guardando ? 'GUARDANDO…' : 'GUARDAR CAMBIOS'),
           ),
+          const SizedBox(height: 24),
+          const Divider(),
+          TextButton.icon(
+            onPressed: () => mostrarEliminarCuenta(context, user?.email ?? ''),
+            icon: const Icon(Icons.delete_outline, color: AppColors.error),
+            label: const Text('Eliminar mi cuenta', style: TextStyle(color: AppColors.error)),
+          ),
         ],
       ),
     );
   }
+}
+
+/// La API no tiene endpoint de borrado de cuenta (ver docs/backend_pendientes.md): por ahora se
+/// solicita por correo. Cuando exista `DELETE /usuarios/me/` este diálogo debe pasar a confirmar
+/// con la contraseña y llamarlo.
+Future<void> mostrarEliminarCuenta(BuildContext context, String emailCuenta) {
+  return showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Eliminar mi cuenta'),
+      content: Text(
+        'Por ahora la eliminación de la cuenta se solicita por correo a ${AppConstants.correoSoporte}, '
+        'escribiendo desde el correo de tu cuenta${emailCuenta.isEmpty ? '' : ' ($emailCuenta)'}.\n\n'
+        'Se borrarán tu perfil, tu foto y tus pronósticos.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () async {
+            await Clipboard.setData(const ClipboardData(text: AppConstants.correoSoporte));
+            if (ctx.mounted) {
+              ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Correo copiado')));
+            }
+          },
+          child: const Text('Copiar correo'),
+        ),
+        TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cerrar')),
+      ],
+    ),
+  );
 }
