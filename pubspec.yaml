@@ -31,7 +31,7 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   # Pasarela de Pagos (Sandbox Stripe)
-  flutter_stripe: ^10.1.1
+  flutter_stripe: 14.1.0
 
 dev_dependencies:
   flutter_test:

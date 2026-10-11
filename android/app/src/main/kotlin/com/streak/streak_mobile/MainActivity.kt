@@ -1,5 +1,6 @@
 package com.streak.streak_mobile
 
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity()
+// flutter_stripe (PaymentSheet) exige FlutterFragmentActivity.
+class MainActivity : FlutterFragmentActivity()
