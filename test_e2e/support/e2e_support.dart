@@ -1,0 +1,77 @@
+// Utilidades compartidas por las pruebas e2e (backend real, almacenamiento en memoria).
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:streak_mobile/core/storage/secure_storage_service.dart';
+import 'package:streak_mobile/features/auth/application/auth_controller.dart';
+import 'package:streak_mobile/features/auth/domain/usuario.dart';
+
+const clave = 'Clave1234x';
+
+/// Sustituye al almacenamiento seguro (que necesita el teléfono) por un mapa en memoria.
+class MemoriaStorage extends SecureStorageService {
+  final datos = <String, String>{};
+
+  @override
+  Future<void> saveTokens({required String access, required String refresh, bool passTemporal = false}) async {
+    datos['access'] = access;
+    datos['refresh'] = refresh;
+    datos['temporal'] = '$passTemporal';
+  }
+
+  @override
+  Future<void> saveAccessToken(String access) async => datos['access'] = access;
+  @override
+  Future<void> saveUsername(String username) async => datos['username'] = username;
+  @override
+  Future<String?> getUsername() async => datos['username'];
+  @override
+  Future<String?> getAccessToken() async => datos['access'];
+  @override
+  Future<String?> getRefreshToken() async => datos['refresh'];
+  @override
+  Future<bool> isPassTemporal() async => datos['temporal'] == 'true';
+  @override
+  Future<void> setPassTemporal(bool value) async => datos['temporal'] = '$value';
+  @override
+  Future<bool> isPro() async => datos['pro'] == 'true';
+  @override
+  Future<void> setIsPro(bool value) async => datos['pro'] = '$value';
+  @override
+  Future<void> clearSession() async => datos.clear();
+}
+
+/// Una "app" independiente: su propio almacenamiento y su propio contenedor Riverpod.
+class AppE2E {
+  AppE2E._(this.storage, this.container);
+
+  final MemoriaStorage storage;
+  final ProviderContainer container;
+
+  static Future<AppE2E> crear() async {
+    final storage = MemoriaStorage();
+    final container = ProviderContainer(overrides: [
+      secureStorageProvider.overrideWithValue(storage),
+    ]);
+    container.listen(authControllerProvider, (_, __) {});
+    // Espera a que termine la restauración inicial (sin sesión guardada).
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    return AppE2E._(storage, container);
+  }
+
+  AuthController get auth => container.read(authControllerProvider.notifier);
+  AuthSession get sesion => container.read(authControllerProvider);
+
+  /// Registra un usuario nuevo (queda con sesión iniciada) y devuelve su username.
+  Future<String> registrarNuevo(String prefijo) async {
+    final u = '$prefijo${DateTime.now().microsecondsSinceEpoch}';
+    await auth.register(
+      username: u,
+      email: '$u@e2e.test',
+      password: clave,
+      firstName: 'Nombre',
+      lastName: 'Apellido',
+    );
+    return u;
+  }
+
+  void cerrar() => container.dispose();
+}

@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 
 /// Modelo de error estandarizado según la regla RN-72:
-/// { "error": { "codigo": "...", "mensaje": "..." } }
+/// { "error": { "codigo": "...", "mensaje": "...", "detalles": {campo: [..]}? } }
 class AppException implements Exception {
   final String codigo;
   final String mensaje;
@@ -47,48 +47,42 @@ class AppException implements Exception {
         mensaje: 'Usuario o contraseña incorrectos.',
       );
     }
-    if (response != null && response.data != null) {
-      final data = response.data;
-
-      // 1. Formato oficial exigido por RN-72
-      if (data is Map<String, dynamic> && data.containsKey('error')) {
-        final errorObj = data['error'];
-        if (errorObj is Map<String, dynamic>) {
-          return AppException(
-            codigo: errorObj['codigo']?.toString() ?? 'ERROR_GENERICO',
-            mensaje: errorObj['mensaje']?.toString() ?? 'Ha ocurrido un error inesperado.',
-          );
-        } else if (errorObj is String) {
-          return AppException(codigo: 'API_ERROR', mensaje: errorObj);
-        }
-      }
-
-      // 2. Soporte para formato nativo simplejwt/DRF {"detail": "..."}
-      if (data is Map<String, dynamic> && data.containsKey('detail')) {
-        return AppException(
-          codigo: 'AUTH_ERROR',
-          mensaje: data['detail'].toString(),
-        );
-      }
-
-      // 3. Diccionario de errores por campo de DRF {"username": ["..."]}
-      if (data is Map<String, dynamic> && data.isNotEmpty) {
-        final firstKey = data.keys.first;
-        final firstVal = data[firstKey];
-        if (firstVal is List && firstVal.isNotEmpty) {
-          final campo = _nombresCampo[firstKey] ?? firstKey;
-          return AppException(
-            codigo: 'VALIDATION_ERROR',
-            mensaje: '$campo: ${firstVal.first}',
-          );
-        }
-      }
+    final data = response?.data;
+    if (data is Map && data['error'] is Map) {
+      final errorObj = data['error'] as Map;
+      final codigo = errorObj['codigo']?.toString() ?? 'ERROR_GENERICO';
+      var mensaje = errorObj['mensaje']?.toString() ?? 'Ha ocurrido un error inesperado.';
+      // Errores por campo: se muestra el primero con su nombre en español.
+      final detalle = _primerDetalle(errorObj['detalles']);
+      if (detalle != null) mensaje = detalle;
+      return AppException(codigo: codigo, mensaje: mensaje);
     }
 
     return AppException(
       codigo: 'HTTP_${response?.statusCode ?? 'UNKNOWN'}',
       mensaje: 'Ocurrió un error en el servidor (${response?.statusCode ?? 'sin respuesta'}).',
     );
+  }
+
+  /// Recorre `detalles` ({campo: [mensajes]}, anidado o lista) y devuelve el primer mensaje.
+  static String? _primerDetalle(dynamic detalles, [String? campo]) {
+    if (detalles is String) {
+      final nombre = campo == null ? null : (_nombresCampo[campo] ?? campo);
+      return (nombre == null || campo == 'non_field_errors') ? detalles : '$nombre: $detalles';
+    }
+    if (detalles is List) {
+      for (final item in detalles) {
+        final r = _primerDetalle(item, campo);
+        if (r != null) return r;
+      }
+    }
+    if (detalles is Map) {
+      for (final entry in detalles.entries) {
+        final r = _primerDetalle(entry.value, entry.key.toString());
+        if (r != null) return r;
+      }
+    }
+    return null;
   }
 
   static const _nombresCampo = {
@@ -104,5 +98,10 @@ class AppException implements Exception {
     'torneo': 'Torneo',
     'max_participantes': 'Participantes',
     'non_field_errors': 'Error',
+    'uid': 'Enlace',
+    'token': 'Enlace',
+    'foto': 'Foto',
+    'codigo': 'Código',
+    'codigo_unico': 'Código',
   };
 }

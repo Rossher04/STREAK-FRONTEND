@@ -14,24 +14,49 @@ DioException _err(int status, dynamic data, {String path = '/quinielas/'}) {
 
 void main() {
   group('AppException.fromDioError', () {
-    test('formato RN-72', () {
-      final e = AppException.fromDioError(_err(403, {
-        'error': {'codigo': 'PASSWORD_TEMPORAL_LOCK', 'mensaje': 'Cambia tu contraseña'}
+    test('formato RN-72 muestra el mensaje', () {
+      final e = AppException.fromDioError(_err(409, {
+        'error': {'codigo': 'QUINIELA_LLENA', 'mensaje': 'La quiniela esta llena'}
       }));
-      expect(e.codigo, 'PASSWORD_TEMPORAL_LOCK');
-      expect(e.mensaje, 'Cambia tu contraseña');
+      expect(e.codigo, 'QUINIELA_LLENA');
+      expect(e.mensaje, 'La quiniela esta llena');
     });
 
-    test('formato viejo {"error": "texto"}', () {
-      final e = AppException.fromDioError(_err(400, {'error': 'La quiniela está llena'}));
-      expect(e.mensaje, 'La quiniela está llena');
+    test('con detalles muestra el primer campo con nombre en español', () {
+      final e = AppException.fromDioError(_err(400, {
+        'error': {
+          'codigo': 'DATOS_INVALIDOS',
+          'mensaje': 'Revisa los datos enviados.',
+          'detalles': {
+            'username': ['Ya existe un usuario con ese nombre.'],
+            'email': ['Correo inválido.'],
+          },
+        }
+      }));
+      expect(e.codigo, 'DATOS_INVALIDOS');
+      expect(e.mensaje, 'Usuario: Ya existe un usuario con ese nombre.');
     });
 
-    test('errores por campo de DRF con nombre en español', () {
-      final e = AppException.fromDioError(
-          _err(400, {'username': ['A user with that username already exists.']}));
-      expect(e.codigo, 'VALIDATION_ERROR');
-      expect(e.mensaje, startsWith('Usuario: '));
+    test('detalles sin campo (lista o non_field_errors) no antepone nombre', () {
+      final lista = AppException.fromDioError(_err(400, {
+        'error': {'codigo': 'DATOS_INVALIDOS', 'mensaje': 'x', 'detalles': ['Algo falló.']}
+      }));
+      expect(lista.mensaje, 'Algo falló.');
+      final nf = AppException.fromDioError(_err(400, {
+        'error': {
+          'codigo': 'DATOS_INVALIDOS',
+          'mensaje': 'x',
+          'detalles': {'non_field_errors': ['Combinación inválida.']}
+        }
+      }));
+      expect(nf.mensaje, 'Combinación inválida.');
+    });
+
+    test('campo desconocido usa su nombre tal cual', () {
+      final e = AppException.fromDioError(_err(400, {
+        'error': {'codigo': 'DATOS_INVALIDOS', 'mensaje': 'x', 'detalles': {'otro': ['Mal.']}}
+      }));
+      expect(e.mensaje, 'otro: Mal.');
     });
 
     test('login fallido se traduce', () {

@@ -23,7 +23,7 @@ class AuthInterceptor extends QueuedInterceptor {
   final void Function()? onForcePasswordChange;
   final void Function()? onSessionExpired;
 
-  static const _rutasPublicas = ['/auth/login', '/auth/register', '/auth/recuperar'];
+  static const _rutasPublicas = ['/auth/login', '/auth/register', '/auth/recuperar', '/auth/restablecer'];
 
   bool _esPublica(String path) => _rutasPublicas.any(path.contains);
 
@@ -43,8 +43,9 @@ class AuthInterceptor extends QueuedInterceptor {
     final status = err.response?.statusCode;
     final path = err.requestOptions.path;
 
-    // RN-07: el backend responde 403 {"error":{"codigo":"PASSWORD_TEMPORAL_LOCK"}}.
-    if (status == 403 && _codigoError(err.response?.data) == 'PASSWORD_TEMPORAL_LOCK') {
+    // RN-07: con contraseña temporal el backend responde 403 ACCESO_DENEGADO a toda ruta
+    // protegida (IsPasswordNotTemporal). El resto de accesos indebidos responden 404.
+    if (status == 403 && !_esPublica(path) && _codigoError(err.response?.data) == 'ACCESO_DENEGADO') {
       await _storage.setPassTemporal(true);
       onForcePasswordChange?.call();
       return handler.next(err);

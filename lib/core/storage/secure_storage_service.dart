@@ -35,7 +35,7 @@ class SecureStorageService {
   Future<void> saveAccessToken(String access) =>
       _storage.write(key: _keyAccess, value: access);
 
-  /// El backend aún no expone /usuarios/me: se guarda el username con el que se inició sesión.
+  /// Último usuario con sesión; permite mostrar algo sin conexión (modo lectura, RN-74).
   Future<void> saveUsername(String username) =>
       _storage.write(key: _keyUsername, value: username);
 

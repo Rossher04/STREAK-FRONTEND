@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/errors/app_exception.dart';
 import '../../../core/network/dio_client.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../data/auth_repository.dart';
@@ -39,7 +40,7 @@ class AuthController extends Notifier<AuthSession> {
     );
   }
 
-  /// Llamado por el interceptor ante un 403 PASSWORD_TEMPORAL_LOCK (RN-07).
+  /// Llamado por el interceptor ante un 403 ACCESO_DENEGADO por contraseña temporal (RN-07).
   void forzarCambioPassword() {
     if (state.status == AuthStatus.needsPasswordChange) return;
     state = AuthSession(
@@ -86,18 +87,47 @@ class AuthController extends Notifier<AuthSession> {
     state = AuthSession(status: AuthStatus.authenticated, user: user);
   }
 
-  Future<void> recuperar(String email) => _repo.recuperar(email);
+  Future<String> recuperar(String email) => _repo.recuperar(email);
 
+  Future<String> restablecer({
+    required String uid,
+    required String token,
+    required String newPassword,
+  }) =>
+      _repo.restablecer(uid: uid, token: token, newPassword: newPassword);
+
+  /// Cambia la contraseña y vuelve a iniciar sesión (el backend invalida los tokens).
   Future<void> cambiarPassword({
     required String oldPassword,
     required String newPassword,
   }) async {
+    final username = state.user?.username;
+    if (username == null) return;
     await _repo.cambiarPassword(oldPassword: oldPassword, newPassword: newPassword);
-    final user = state.user?.copyWith(passTemporal: false);
-    state = AuthSession(status: AuthStatus.authenticated, user: user);
+    try {
+      final user = await _repo.login(username: username, password: newPassword);
+      state = AuthSession(status: AuthStatus.authenticated, user: user);
+    } on AppException {
+      // La contraseña ya cambió pero el re-login falló: hay que entrar de nuevo a mano.
+      state = const AuthSession(
+        status: AuthStatus.unauthenticated,
+        message: 'Contraseña actualizada. Inicia sesión con la nueva.',
+      );
+    }
   }
 
-  void updateProfile(Usuario user) {
+  Future<void> actualizarPerfil({
+    required String firstName,
+    required String lastName,
+    required String telefono,
+    FotoPerfil? foto,
+  }) async {
+    final user = await _repo.actualizarPerfil(
+      firstName: firstName,
+      lastName: lastName,
+      telefono: telefono,
+      foto: foto,
+    );
     state = AuthSession(status: AuthStatus.authenticated, user: user);
   }
 

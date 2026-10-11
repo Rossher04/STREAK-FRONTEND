@@ -6,11 +6,25 @@ class Usuario {
     this.firstName = '',
     this.lastName = '',
     this.telefono = '',
-    this.fechaNacimiento,
-    this.fotoPath,
+    this.fotoUrl,
     this.esPro = false,
     this.passTemporal = false,
   });
+
+  /// Construye el usuario desde la respuesta de GET/PATCH /usuarios/me/.
+  factory Usuario.fromJson(Map<String, dynamic> json) {
+    return Usuario(
+      id: json['id'] as int,
+      username: json['username'] as String? ?? '',
+      email: json['email'] as String? ?? '',
+      firstName: json['first_name'] as String? ?? '',
+      lastName: json['last_name'] as String? ?? '',
+      telefono: json['telefono'] as String? ?? '',
+      fotoUrl: json['foto'] as String?,
+      esPro: json['es_pro'] == true,
+      passTemporal: json['pass_temporal_flag'] == true,
+    );
+  }
 
   final int id;
   final String username;
@@ -18,8 +32,7 @@ class Usuario {
   final String firstName;
   final String lastName;
   final String telefono;
-  final DateTime? fechaNacimiento;
-  final String? fotoPath;
+  final String? fotoUrl;
   final bool esPro;
   final bool passTemporal;
 
@@ -28,25 +41,16 @@ class Usuario {
     return full.isEmpty ? username : full;
   }
 
-  Usuario copyWith({
-    String? firstName,
-    String? lastName,
-    String? telefono,
-    DateTime? fechaNacimiento,
-    String? fotoPath,
-    bool? esPro,
-    bool? passTemporal,
-  }) {
+  Usuario copyWith({bool? passTemporal}) {
     return Usuario(
       id: id,
       username: username,
       email: email,
-      firstName: firstName ?? this.firstName,
-      lastName: lastName ?? this.lastName,
-      telefono: telefono ?? this.telefono,
-      fechaNacimiento: fechaNacimiento ?? this.fechaNacimiento,
-      fotoPath: fotoPath ?? this.fotoPath,
-      esPro: esPro ?? this.esPro,
+      firstName: firstName,
+      lastName: lastName,
+      telefono: telefono,
+      fotoUrl: fotoUrl,
+      esPro: esPro,
       passTemporal: passTemporal ?? this.passTemporal,
     );
   }

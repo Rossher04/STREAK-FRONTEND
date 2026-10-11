@@ -17,7 +17,7 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
   final _email = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _loading = false;
-  bool _enviado = false;
+  String? _mensaje; // respuesta del backend tras enviar
 
   @override
   void dispose() {
@@ -29,11 +29,16 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      await ref.read(authControllerProvider.notifier).recuperar(_email.text);
-      setState(() => _enviado = true);
+      final mensaje = await ref.read(authControllerProvider.notifier).recuperar(_email.text);
+      if (mounted) setState(() => _mensaje = mensaje);
     } on AppException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.mensaje)));
+        final sinCorreo = e.codigo == 'CORREO_NO_CONFIGURADO';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(sinCorreo
+              ? '${e.mensaje} El envío de correos aún no está configurado en el servidor; inténtalo más tarde.'
+              : e.mensaje),
+        ));
       }
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -46,15 +51,18 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
       appBar: AppBar(title: const Text('Recuperar contraseña')),
       body: Padding(
         padding: const EdgeInsets.all(24),
-        child: _enviado
+        child: _mensaje != null
             ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(Icons.mark_email_read_outlined, size: 64, color: AppColors.sportsOrange),
                   const SizedBox(height: 16),
+                  Text(_mensaje!, textAlign: TextAlign.center),
+                  const SizedBox(height: 8),
                   const Text(
-                    'Si el correo está registrado, recibirás una contraseña temporal de 10 caracteres (vence en 24 h). Al entrar deberás cambiarla (RN-06 / RN-07).',
+                    'Abre el enlace del correo (vale una hora) para elegir una contraseña nueva.',
                     textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(

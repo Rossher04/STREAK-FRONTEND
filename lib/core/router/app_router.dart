@@ -8,6 +8,7 @@ import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/perfil_screen.dart';
 import '../../features/auth/presentation/screens/recuperar_password_screen.dart';
 import '../../features/auth/presentation/screens/registro_screen.dart';
+import '../../features/auth/presentation/screens/restablecer_password_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/quinielas/presentation/screens/codigo_quiniela_screen.dart';
 import '../../features/quinielas/presentation/screens/crear_quiniela_screen.dart';
@@ -24,7 +25,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final auth = ref.read(authControllerProvider);
       final loc = state.matchedLocation;
-      final public = loc == '/login' || loc == '/register' || loc == '/recuperar';
+      final public = loc == '/login' ||
+          loc == '/register' ||
+          loc == '/recuperar' ||
+          loc.startsWith('/restablecer/');
 
       if (auth.status == AuthStatus.unknown) {
         return loc == '/' ? null : '/';
@@ -45,6 +49,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', name: 'login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/register', name: 'register', builder: (context, state) => const RegistroScreen()),
       GoRoute(path: '/recuperar', name: 'recuperar', builder: (context, state) => const RecuperarPasswordScreen()),
+      GoRoute(
+        path: '/restablecer/:uid/:token',
+        name: 'restablecer',
+        builder: (context, state) => RestablecerPasswordScreen(
+          uid: state.pathParameters['uid']!,
+          token: state.pathParameters['token']!,
+        ),
+      ),
       GoRoute(
         path: '/cambio-password-forzado',
         name: 'cambio_password_forzado',

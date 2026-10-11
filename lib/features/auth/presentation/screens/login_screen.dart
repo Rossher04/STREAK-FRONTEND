@@ -83,13 +83,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
                   ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Demo sin API: demo / demo1234  ·  temp / temporal10 (cambio forzado)',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                  ),
                   const SizedBox(height: 28),
+                  if (ref.watch(authControllerProvider).message != null) ...[
+                    Text(
+                      ref.watch(authControllerProvider).message!,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.sportsOrange),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   TextFormField(
                     controller: _usernameController,
                     decoration: const InputDecoration(

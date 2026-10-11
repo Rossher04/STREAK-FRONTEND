@@ -23,6 +23,7 @@ class ApiConstants {
   static const String login = '/auth/login/';
   static const String refreshToken = '/auth/login/refresh/';
   static const String recuperarPassword = '/auth/recuperar/';
+  static const String restablecerPassword = '/auth/restablecer/';
   static const String cambiarPassword = '/auth/cambiar-password/';
 
   // Endpoints de Usuario (A2 / B2)
