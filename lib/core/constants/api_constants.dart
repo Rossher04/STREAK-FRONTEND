@@ -17,9 +17,10 @@ class ApiConstants {
     return 'http://localhost:8000/api';
   }
 
-  // Render (plan gratuito) puede tardar ~1 min en despertar: timeouts holgados.
-  static const Duration connectTimeout = Duration(seconds: 30);
-  static const Duration receiveTimeout = Duration(seconds: 30);
+  // Render (plan gratuito) se duerme: la primera petición tarda ~45 s en despertar. Con 30 s la primera
+  // pantalla fallaría; 75 s da margen, y además se reintenta una vez (actividad_red.dart).
+  static const Duration connectTimeout = Duration(seconds: 75);
+  static const Duration receiveTimeout = Duration(seconds: 75);
 
   // Endpoints de Autenticación (A2)
   static const String register = '/auth/register/';

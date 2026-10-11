@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/app_exception.dart';
+import '../../../../core/network/actividad_red.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../application/auth_controller.dart';
 
@@ -84,6 +85,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
                   ),
                   const SizedBox(height: 28),
+                  const AvisoServidorLento(),
                   if (ref.watch(authControllerProvider).message != null) ...[
                     Text(
                       ref.watch(authControllerProvider).message!,

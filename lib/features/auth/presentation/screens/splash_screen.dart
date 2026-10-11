@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/network/actividad_red.dart';
 import '../../../../core/theme/app_colors.dart';
 
 /// La redirección de sesión la hace GoRouter. Esta pantalla cubre AuthStatus.unknown.
@@ -58,6 +59,10 @@ class SplashScreen extends StatelessWidget {
                 strokeWidth: 2.5,
                 color: AppColors.goldAccent,
               ),
+            ),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(32, 24, 32, 0),
+              child: AvisoServidorLento(),
             ),
           ],
         ),
