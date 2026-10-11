@@ -152,6 +152,7 @@ tools/           generar_icono.py         android/    firma, deep link, MainActi
 - [`docs/backend_pendientes.md`](docs/backend_pendientes.md) — desviaciones del backend (con archivo:línea, RN afectada y propuesta).
 - [`docs/release_android.md`](docs/release_android.md) — firma, JDK requerido, compilación e ícono.
 - [`docs/play_store.md`](docs/play_store.md) y [`docs/privacidad.md`](docs/privacidad.md) — ficha y política (borradores con marcadores `[ENTRE CORCHETES]`).
+- [`docs/capturas_telefono_pruebas/`](docs/capturas_telefono_pruebas/LEEME.md) — capturas reales del teléfono como evidencia (no son para Play); las de la ficha se hacen con `tools/capturas_play.ps1`.
 - [`test_e2e/README.md`](test_e2e/README.md) — pruebas contra la API real y prueba manual del pago con tarjeta de prueba.
 
 ## 9. Limitaciones conocidas
