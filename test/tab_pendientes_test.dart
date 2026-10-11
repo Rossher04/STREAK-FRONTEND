@@ -113,6 +113,17 @@ void main() {
     expect(find.text('FASE DE GRUPOS'), findsOneWidget);
   });
 
+  testWidgets('partido cerrado sin pronóstico: "No pronosticaste" y "vs", sin guiones sueltos', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(420, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _montar(tester, tab(_vista(partidos: [_partido(1, 1, _ahora.add(const Duration(minutes: 2)))])));
+    expect(find.text('No pronosticaste'), findsOneWidget);
+    expect(find.text('vs'), findsOneWidget);
+    expect(find.text('–'), findsNothing);
+    expect(find.text('– –'), findsNothing);
+    expect(find.byTooltip('Sumar gol a Leones'), findsNothing);
+  });
+
   testWidgets('sin conexión no se puede guardar', (tester) async {
     await tester.binding.setSurfaceSize(const Size(420, 1600));
     addTearDown(() => tester.binding.setSurfaceSize(null));

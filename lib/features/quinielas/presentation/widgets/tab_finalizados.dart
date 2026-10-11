@@ -82,7 +82,7 @@ class PartidoResueltoCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                p.pronostico == null ? 'No guardaste pronóstico' : 'Mi pronóstico: ${textoMarcador(p.pronostico)}',
+                p.pronostico == null ? 'No pronosticaste' : 'Mi pronóstico: ${textoMarcador(p.pronostico)}',
                 style: const TextStyle(color: AppColors.textSecondary),
               ),
               const SizedBox(height: 8),

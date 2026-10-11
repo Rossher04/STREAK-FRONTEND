@@ -147,38 +147,60 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
                     color: AppColors.textSecondary, fontSize: 12),
               ),
               const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                      child: _Lado(
-                          nombre: v.nombreEquipo(p.equipoLocalId),
-                          valor: _local,
-                          activo: editable,
-                          fijo: p.pronostico?.local,
-                          onCambio: (n) => setState(() {
-                                _local = n;
-                                _modificado = true;
-                                _guardado = false;
-                              }))),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text('–',
-                        style: TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.bold)),
-                  ),
-                  Expanded(
-                      child: _Lado(
-                          nombre: v.nombreEquipo(p.equipoVisitaId),
-                          valor: _visita,
-                          activo: editable,
-                          fijo: p.pronostico?.visita,
-                          onCambio: (n) => setState(() {
-                                _visita = n;
-                                _modificado = true;
-                                _guardado = false;
-                              }))),
-                ],
-              ),
+              if (editable)
+                Row(
+                  children: [
+                    Expanded(
+                        child: _Lado(
+                            nombre: v.nombreEquipo(p.equipoLocalId),
+                            valor: _local,
+                            activo: editable,
+                            fijo: p.pronostico?.local,
+                            onCambio: (n) => setState(() {
+                                  _local = n;
+                                  _modificado = true;
+                                  _guardado = false;
+                                }))),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      child: Text('–',
+                          style: TextStyle(
+                              fontSize: 22, fontWeight: FontWeight.bold)),
+                    ),
+                    Expanded(
+                        child: _Lado(
+                            nombre: v.nombreEquipo(p.equipoVisitaId),
+                            valor: _visita,
+                            activo: editable,
+                            fijo: p.pronostico?.visita,
+                            onCambio: (n) => setState(() {
+                                  _visita = n;
+                                  _modificado = true;
+                                  _guardado = false;
+                                }))),
+                  ],
+                ),
+              if (!editable)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(v.nombreEquipo(p.equipoLocalId),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('vs',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.w800)),
+                    ),
+                    Expanded(
+                      child: Text(v.nombreEquipo(p.equipoVisitaId),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+                  ],
+                ),
               const SizedBox(height: 8),
               Text(
                 cuenta != null ? '$estadoTexto · faltan $cuenta' : estadoTexto,
@@ -204,7 +226,7 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
                 const SizedBox(height: 8),
                 Text(
                   p.pronostico == null
-                      ? 'No guardaste pronóstico'
+                      ? 'No pronosticaste'
                       : 'Tu pronóstico: ${textoMarcador(p.pronostico)}',
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontWeight: FontWeight.w600),
