@@ -56,7 +56,8 @@ final esperaProProvider = Provider<Future<void> Function(Duration)>((ref) => (d)
 /// PaymentSheet (solo Android e iOS).
 String? motivoPagosNoDisponibles() {
   if (AppConstants.stripePublishableKey.isEmpty) {
-    return 'Los pagos aún no están configurados en esta versión de la app (falta STRIPE_PUBLISHABLE_KEY).';
+    // El detalle técnico (falta --dart-define=STRIPE_PUBLISHABLE_KEY) no se muestra al usuario final.
+    return 'Los pagos aún no están disponibles en esta versión de la app.';
   }
   if (kIsWeb || !(Platform.isAndroid || Platform.isIOS)) {
     return 'El pago con tarjeta solo está disponible en la app de Android o iOS.';
