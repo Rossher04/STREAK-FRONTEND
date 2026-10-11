@@ -46,7 +46,9 @@ class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
       final q = await ref.read(quinielasRepositoryProvider).crear(
             nombre: _nombre.text.trim(),
             torneoId: torneoId,
-            maxParticipantes: _max.round(),
+            maxParticipantes: _max
+                .clamp(AppConstants.minParticipantes.toDouble(), _tope.toDouble())
+                .round(),
           );
       refrescarQuinielas(ref);
       if (mounted) context.go('/quinielas/${q.id}/codigo');

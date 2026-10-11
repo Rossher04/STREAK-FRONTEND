@@ -43,6 +43,8 @@ class AuthInterceptor extends QueuedInterceptor {
     final status = err.response?.statusCode;
     final path = err.requestOptions.path;
 
+    // TODO: hoy el backend solo responde 403 ACCESO_DENEGADO por contraseña temporal; cuando
+    // exponga un código específico (p. ej. PASSWORD_TEMPORAL) hay que usarlo aquí en vez de este genérico.
     // RN-07: con contraseña temporal el backend responde 403 ACCESO_DENEGADO a toda ruta
     // protegida (IsPasswordNotTemporal). El resto de accesos indebidos responden 404.
     if (status == 403 && !_esPublica(path) && _codigoError(err.response?.data) == 'ACCESO_DENEGADO') {
