@@ -7,7 +7,9 @@ import '../../application/quinielas_providers.dart';
 import '../../domain/quiniela_vista.dart';
 import '../../domain/reglas.dart';
 import '../widgets/quiniela_widgets.dart';
+import '../widgets/tab_finalizados.dart';
 import '../widgets/tab_pendientes.dart';
+import '../widgets/tab_tabla.dart';
 
 /// B5: quiniela activa. Encabezado (torneo, quiniela, puesto y puntos) y pestañas.
 class QuinielaActivaScreen extends ConsumerWidget {
@@ -61,7 +63,7 @@ class _Contenido extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final usuarioId = ref.watch(authControllerProvider.select((s) => s.user?.id));
     return DefaultTabController(
-      length: 1,
+      length: 3,
       child: Column(
         children: [
           Encabezado(vista: vista, usuarioId: usuarioId),
@@ -79,12 +81,14 @@ class _Contenido extends ConsumerWidget {
           const TabBar(
             labelColor: AppColors.primaryBlue,
             indicatorColor: AppColors.sportsOrange,
-            tabs: [Tab(text: 'Pendientes')],
+            tabs: [Tab(text: 'Pendientes'), Tab(text: 'Finalizados'), Tab(text: 'Tabla')],
           ),
           Expanded(
             child: TabBarView(
               children: [
                 TabPendientes(vista: vista, quinielaId: quinielaId, onRefresh: onRefresh),
+                TabFinalizados(vista: vista, quinielaId: quinielaId, onRefresh: onRefresh),
+                TabTabla(vista: vista, quinielaId: quinielaId, usuarioId: usuarioId, onRefresh: onRefresh),
               ],
             ),
           ),
