@@ -238,7 +238,7 @@ class _QuinielaList extends ConsumerWidget {
                   trailing: historial
                       ? const Icon(Icons.lock_outline, color: AppColors.textSecondary)
                       : const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/quinielas/${q.id}/codigo'),
+                  onTap: () => context.push('/quinielas/${q.id}'),
                 ),
               );
             },

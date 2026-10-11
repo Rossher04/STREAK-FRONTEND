@@ -13,6 +13,7 @@ import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/quinielas/presentation/screens/codigo_quiniela_screen.dart';
 import '../../features/quinielas/presentation/screens/crear_quiniela_screen.dart';
 import '../../features/quinielas/presentation/screens/home_screen.dart';
+import '../../features/quinielas/presentation/screens/quiniela_activa_screen.dart';
 import '../../features/quinielas/presentation/screens/unirse_quiniela_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -73,6 +74,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/quinielas/unirse',
         name: 'unirse_quiniela',
         builder: (context, state) => const UnirseQuinielaScreen(),
+      ),
+      GoRoute(
+        path: '/quinielas/:id',
+        name: 'quiniela_activa',
+        builder: (context, state) =>
+            QuinielaActivaScreen(quinielaId: int.parse(state.pathParameters['id']!)),
       ),
       GoRoute(
         path: '/quinielas/:id/codigo',
