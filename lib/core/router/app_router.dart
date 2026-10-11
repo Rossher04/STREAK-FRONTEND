@@ -13,6 +13,8 @@ import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/quinielas/presentation/screens/codigo_quiniela_screen.dart';
 import '../../features/quinielas/presentation/screens/crear_quiniela_screen.dart';
 import '../../features/quinielas/presentation/screens/home_screen.dart';
+import '../../features/quinielas/presentation/screens/participante_detalle_screen.dart';
+import '../../features/quinielas/presentation/screens/partido_detalle_screen.dart';
 import '../../features/quinielas/presentation/screens/quiniela_activa_screen.dart';
 import '../../features/quinielas/presentation/screens/unirse_quiniela_screen.dart';
 
@@ -80,6 +82,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'quiniela_activa',
         builder: (context, state) =>
             QuinielaActivaScreen(quinielaId: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: '/quinielas/:id/partido/:pid',
+        name: 'partido_detalle',
+        builder: (context, state) => PartidoDetalleScreen(
+          quinielaId: int.parse(state.pathParameters['id']!),
+          partidoId: int.parse(state.pathParameters['pid']!),
+        ),
+      ),
+      GoRoute(
+        path: '/quinielas/:id/participante/:uid',
+        name: 'participante_detalle',
+        builder: (context, state) => ParticipanteDetalleScreen(
+          quinielaId: int.parse(state.pathParameters['id']!),
+          usuarioId: int.parse(state.pathParameters['uid']!),
+        ),
       ),
       GoRoute(
         path: '/quinielas/:id/codigo',
