@@ -1,10 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/storage/cache_store.dart';
+import '../../auth/application/auth_controller.dart';
 import '../data/quinielas_repository.dart';
 import '../domain/models.dart';
+import '../domain/quiniela_vista.dart';
 
 final quinielasRepositoryProvider = Provider<QuinielasRepository>((ref) {
-  return QuinielasRepository(ref.watch(dioProvider));
+  return QuinielasRepository(ref.watch(dioProvider), ref.watch(cacheStoreProvider));
 });
 
 /// Todos los torneos publicados, por id (para mostrar el nombre del torneo de cada quiniela).
@@ -35,3 +38,19 @@ void refrescarQuinielas(WidgetRef ref) {
   ref.invalidate(misQuinielasProvider);
   ref.invalidate(historialProvider);
 }
+
+/// Quiniela activa completa (B5): torneo, equipos, fases, partidos con mi pronóstico y tabla.
+final quinielaVistaProvider = FutureProvider.autoDispose.family<QuinielaVista, int>((ref, id) {
+  final usuarioId = ref.watch(authControllerProvider.select((s) => s.user?.id)) ?? 0;
+  return ref.watch(quinielasRepositoryProvider).vista(id, usuarioId: usuarioId);
+});
+
+final partidoDetalleProvider =
+    FutureProvider.autoDispose.family<PartidoDetalle, ({int quinielaId, int partidoId})>((ref, k) {
+  return ref.watch(quinielasRepositoryProvider).partidoDetalle(k.quinielaId, k.partidoId);
+});
+
+final participanteDetalleProvider =
+    FutureProvider.autoDispose.family<ParticipanteDetalle, ({int quinielaId, int usuarioId})>((ref, k) {
+  return ref.watch(quinielasRepositoryProvider).participanteDetalle(k.quinielaId, k.usuarioId);
+});

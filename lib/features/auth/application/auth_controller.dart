@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/storage/cache_store.dart';
 import '../../../core/storage/secure_storage_service.dart';
 import '../data/auth_repository.dart';
 import '../domain/usuario.dart';
@@ -133,6 +134,7 @@ class AuthController extends Notifier<AuthSession> {
 
   Future<void> logout() async {
     await _repo.logout();
+    await ref.read(cacheStoreProvider).limpiar();
     state = AuthSession.loggedOut;
   }
 }

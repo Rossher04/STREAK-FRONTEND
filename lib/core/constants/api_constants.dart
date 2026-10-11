@@ -32,6 +32,9 @@ class ApiConstants {
   // Endpoints de Torneos (A2)
   static const String torneos = '/torneos/';
   static String torneoPartidos(int torneoId) => '/torneos/$torneoId/partidos/';
+  static String torneoDetalle(int torneoId) => '/torneos/$torneoId/';
+  static String torneoEquipos(int torneoId) => '/torneos/$torneoId/equipos/';
+  static String torneoFases(int torneoId) => '/torneos/$torneoId/fases/';
 
   // Endpoints de Quinielas (A2 / B3 / B4 / B5)
   static const String quinielas = '/quinielas/';
@@ -41,6 +44,8 @@ class ApiConstants {
   static String quinielaDetalle(int id) => '/quinielas/$id/';
   static String quinielaTabla(int id) => '/quinielas/$id/tabla/';
   static String quinielaPronosticos(int id) => '/quinielas/$id/pronosticos/';
+  static String quinielaPartidos(int id) => '/quinielas/$id/partidos/';
+  static String participanteDetalle(int qid, int uid) => '/quinielas/$qid/participantes/$uid/detalle/';
   static String partidoDetalle(int qid, int pid) => '/quinielas/$qid/partidos/$pid/detalle/';
 
   // Endpoints de Plan Pro (A2 / B6)
