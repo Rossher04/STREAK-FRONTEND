@@ -20,6 +20,7 @@ class SecureStorageService {
   static const String _keyRefresh = 'streak_refresh_token';
   static const String _keyPassTemporal = 'streak_pass_temporal_flag';
   static const String _keyIsPro = 'streak_is_pro';
+  static const String _keyUsername = 'streak_username';
 
   Future<void> saveTokens({
     required String access,
@@ -30,6 +31,15 @@ class SecureStorageService {
     await _storage.write(key: _keyRefresh, value: refresh);
     await _storage.write(key: _keyPassTemporal, value: passTemporal.toString());
   }
+
+  Future<void> saveAccessToken(String access) =>
+      _storage.write(key: _keyAccess, value: access);
+
+  /// El backend aún no expone /usuarios/me: se guarda el username con el que se inició sesión.
+  Future<void> saveUsername(String username) =>
+      _storage.write(key: _keyUsername, value: username);
+
+  Future<String?> getUsername() => _storage.read(key: _keyUsername);
 
   Future<String?> getAccessToken() async => await _storage.read(key: _keyAccess);
   Future<String?> getRefreshToken() async => await _storage.read(key: _keyRefresh);

@@ -21,7 +21,12 @@ class AuthController extends Notifier<AuthSession> {
   AuthRepository get _repo => ref.read(authRepositoryProvider);
 
   Future<void> _restore() async {
-    final user = await _repo.restoreSession();
+    Usuario? user;
+    try {
+      user = await _repo.restoreSession();
+    } catch (_) {
+      user = null;
+    }
     if (user == null) {
       state = AuthSession.loggedOut;
       return;
@@ -31,6 +36,24 @@ class AuthController extends Notifier<AuthSession> {
           ? AuthStatus.needsPasswordChange
           : AuthStatus.authenticated,
       user: user,
+    );
+  }
+
+  /// Llamado por el interceptor ante un 403 PASSWORD_TEMPORAL_LOCK (RN-07).
+  void forzarCambioPassword() {
+    if (state.status == AuthStatus.needsPasswordChange) return;
+    state = AuthSession(
+      status: AuthStatus.needsPasswordChange,
+      user: state.user?.copyWith(passTemporal: true),
+    );
+  }
+
+  /// Llamado por el interceptor cuando el refresh token ya no es válido.
+  void sesionExpirada() {
+    if (state.status == AuthStatus.unauthenticated) return;
+    state = const AuthSession(
+      status: AuthStatus.unauthenticated,
+      message: 'Tu sesión expiró. Vuelve a iniciar sesión.',
     );
   }
 

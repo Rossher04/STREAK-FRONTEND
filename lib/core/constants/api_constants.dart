@@ -2,16 +2,21 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 class ApiConstants {
-  // Configuración base de red
-  // En emulador Android 10.0.2.2 apunta a la máquina host (localhost)
+  // URL del backend. Se define al compilar:
+  //   flutter run --dart-define=API_BASE_URL=https://<app>.onrender.com/api
+  // Sin ella se usa el backend local (10.0.2.2 = localhost de la PC desde el emulador Android).
+  static const String _envBaseUrl = String.fromEnvironment('API_BASE_URL');
+
   static String get baseUrl {
+    if (_envBaseUrl.isNotEmpty) return _envBaseUrl;
     if (kIsWeb) return 'http://localhost:8000/api';
     if (Platform.isAndroid) return 'http://10.0.2.2:8000/api';
     return 'http://localhost:8000/api';
   }
 
-  static const Duration connectTimeout = Duration(seconds: 10);
-  static const Duration receiveTimeout = Duration(seconds: 10);
+  // Render (plan gratuito) puede tardar ~1 min en despertar: timeouts holgados.
+  static const Duration connectTimeout = Duration(seconds: 30);
+  static const Duration receiveTimeout = Duration(seconds: 30);
 
   // Endpoints de Autenticación (A2)
   static const String register = '/auth/register/';

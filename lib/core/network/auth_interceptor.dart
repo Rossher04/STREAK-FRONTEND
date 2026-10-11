@@ -2,78 +2,86 @@ import 'package:dio/dio.dart';
 import '../storage/secure_storage_service.dart';
 import '../constants/api_constants.dart';
 
+/// Adjunta el JWT, renueva el access token ante un 401 y detecta la
+/// contraseña temporal (RN-07).
 class AuthInterceptor extends QueuedInterceptor {
-  final Dio _dio;
+  AuthInterceptor(
+    Dio dio,
+    this._storage, {
+    this.onForcePasswordChange,
+    this.onSessionExpired,
+  }) : _plainDio = Dio(BaseOptions(
+          baseUrl: dio.options.baseUrl,
+          connectTimeout: dio.options.connectTimeout,
+          receiveTimeout: dio.options.receiveTimeout,
+        ));
+
+  /// Cliente sin interceptores para el refresh y el reintento: usar el Dio principal
+  /// aquí bloquearía la cola del QueuedInterceptor si esa petición también falla.
+  final Dio _plainDio;
   final SecureStorageService _storage;
   final void Function()? onForcePasswordChange;
+  final void Function()? onSessionExpired;
 
-  AuthInterceptor(this._dio, this._storage, {this.onForcePasswordChange});
+  static const _rutasPublicas = ['/auth/login', '/auth/register', '/auth/recuperar'];
+
+  bool _esPublica(String path) => _rutasPublicas.any(path.contains);
 
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
-    // Si la ruta no es de auth público, adjuntar token JWT
-    if (!options.path.contains('/auth/login') &&
-        !options.path.contains('/auth/register') &&
-        !options.path.contains('/auth/recuperar')) {
+    if (!_esPublica(options.path)) {
       final token = await _storage.getAccessToken();
       if (token != null) {
         options.headers['Authorization'] = 'Bearer $token';
       }
     }
-    return handler.next(options);
-  }
-
-  @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) async {
-    // RN-07: Si el backend detecta pass_temporal_flag = true
-    if (response.data is Map<String, dynamic>) {
-      if (response.data['pass_temporal_flag'] == true) {
-        await _storage.setPassTemporal(true);
-        onForcePasswordChange?.call();
-      }
-    }
-    return handler.next(response);
+    handler.next(options);
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
-    // Manejo de expiración de token (401 Unauthorized)
-    if (err.response?.statusCode == 401 &&
-        !err.requestOptions.path.contains('/auth/login')) {
+    final status = err.response?.statusCode;
+    final path = err.requestOptions.path;
+
+    // RN-07: el backend responde 403 {"error":{"codigo":"PASSWORD_TEMPORAL_LOCK"}}.
+    if (status == 403 && _codigoError(err.response?.data) == 'PASSWORD_TEMPORAL_LOCK') {
+      await _storage.setPassTemporal(true);
+      onForcePasswordChange?.call();
+      return handler.next(err);
+    }
+
+    final yaReintentado = err.requestOptions.extra['reintentado'] == true;
+    if (status == 401 && !_esPublica(path) && !yaReintentado) {
       final refresh = await _storage.getRefreshToken();
       if (refresh != null) {
         try {
-          // Intentar renovar el Access Token
-          final refreshResponse = await _dio.post(
+          final resp = await _plainDio.post(
             ApiConstants.refreshToken,
             data: {'refresh': refresh},
           );
+          final newAccess = resp.data['access'] as String;
+          await _storage.saveAccessToken(newAccess);
 
-          if (refreshResponse.statusCode == 200) {
-            final newAccess = refreshResponse.data['access'];
-            await _storage.saveTokens(access: newAccess, refresh: refresh);
-
-            // Reintentar la petición original con el nuevo token
-            final clonedRequest = err.requestOptions;
-            clonedRequest.headers['Authorization'] = 'Bearer $newAccess';
-            final retryResponse = await _dio.fetch(clonedRequest);
-            return handler.resolve(retryResponse);
-          }
-        } catch (_) {
-          // Si el refresh falló, limpiar sesión para obligar a login
-          await _storage.clearSession();
+          final retry = err.requestOptions
+            ..headers['Authorization'] = 'Bearer $newAccess'
+            ..extra['reintentado'] = true;
+          return handler.resolve(await _plainDio.fetch(retry));
+        } on DioException catch (e) {
+          // Solo se cierra sesión ante un 401; por falta de red o error del reintento se propaga el error.
+          if (e.response?.statusCode != 401) return handler.next(e.response != null ? e : err);
         }
       }
+      await _storage.clearSession();
+      onSessionExpired?.call();
     }
 
-    // RN-07: Detectar error de clave temporal bloqueada
-    if (err.response?.data is Map &&
-        (err.response?.data['codigo'] == 'PASSWORD_TEMPORAL_LOCK' ||
-         err.response?.data['error']?['codigo'] == 'PASSWORD_TEMPORAL_LOCK')) {
-      await _storage.setPassTemporal(true);
-      onForcePasswordChange?.call();
-    }
+    handler.next(err);
+  }
 
-    return handler.next(err);
+  static String? _codigoError(dynamic data) {
+    if (data is Map && data['error'] is Map) {
+      return (data['error'] as Map)['codigo']?.toString();
+    }
+    return null;
   }
 }

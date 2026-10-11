@@ -10,36 +10,26 @@ class AuthRepository {
   final Dio _dio;
   final SecureStorageService _storage;
 
-  static const _demoAccess = 'demo-access-token';
-  static const _demoRefresh = 'demo-refresh-token';
-
   Future<Usuario> login({
     required String username,
     required String password,
   }) async {
+    final user = username.trim();
     try {
       final response = await _dio.post(
         ApiConstants.login,
-        data: {'username': username.trim(), 'password': password},
+        data: {'username': user, 'password': password},
       );
       final data = response.data as Map<String, dynamic>;
       await _storage.saveTokens(
         access: data['access'] as String,
         refresh: data['refresh'] as String,
-        passTemporal: data['pass_temporal_flag'] == true,
       );
-      return Usuario(
-        id: 0,
-        username: username.trim(),
-        email: '',
-        passTemporal: data['pass_temporal_flag'] == true,
-      );
+      await _storage.saveUsername(user);
     } on DioException catch (e) {
-      if (_isUnreachable(e)) {
-        return await _loginDemo(username.trim(), password);
-      }
       throw AppException.fromDioError(e);
     }
+    return _cargarEstado(user);
   }
 
   Future<Usuario> register({
@@ -62,20 +52,16 @@ class AuthRepository {
           'telefono': telefono.trim(),
         },
       );
-      return login(username: username, password: password);
     } on DioException catch (e) {
-      if (_isUnreachable(e)) {
-        return await _loginDemo(username.trim(), password, email: email, firstName: firstName, lastName: lastName, telefono: telefono);
-      }
       throw AppException.fromDioError(e);
     }
+    return login(username: username, password: password);
   }
 
   Future<void> recuperar(String email) async {
     try {
       await _dio.post(ApiConstants.recuperarPassword, data: {'email': email.trim()});
     } on DioException catch (e) {
-      if (_isUnreachable(e)) return;
       throw AppException.fromDioError(e);
     }
   }
@@ -91,63 +77,56 @@ class AuthRepository {
       );
       await _storage.setPassTemporal(false);
     } on DioException catch (e) {
-      if (_isUnreachable(e)) {
-        await _storage.setPassTemporal(false);
-        return;
-      }
       throw AppException.fromDioError(e);
     }
   }
 
+  /// Restaura la sesión guardada. Sin conexión usa los últimos datos conocidos
+  /// (modo lectura, RN-74); si el servidor rechaza el token devuelve null.
   Future<Usuario?> restoreSession() async {
     final token = await _storage.getAccessToken();
-    if (token == null) return null;
-    final temporal = await _storage.isPassTemporal();
-    final pro = await _storage.isPro();
-    return Usuario(
-      id: 1,
-      username: token == _demoAccess ? 'demo' : 'usuario',
-      email: 'demo@streak.app',
-      firstName: 'Alex',
-      lastName: 'Rivas',
-      telefono: '5555-0101',
-      fechaNacimiento: DateTime(1998, 5, 12),
-      esPro: pro,
-      passTemporal: temporal,
-    );
+    final username = await _storage.getUsername();
+    if (token == null || username == null) return null;
+    try {
+      return await _cargarEstado(username);
+    } on AppException catch (e) {
+      if (e.codigo == 'NETWORK_ERROR' || e.codigo == 'TIMEOUT_ERROR') {
+        return Usuario(
+          id: 0,
+          username: username,
+          email: '',
+          esPro: await _storage.isPro(),
+          passTemporal: await _storage.isPassTemporal(),
+        );
+      }
+      if (await _storage.getAccessToken() == null) return null;
+      rethrow;
+    }
   }
 
   Future<void> logout() => _storage.clearSession();
 
-  Future<Usuario> _loginDemo(
-    String username,
-    String password, {
-    String email = 'demo@streak.app',
-    String firstName = 'Alex',
-    String lastName = 'Rivas',
-    String telefono = '',
-  }) async {
-    final temporal = username.toLowerCase() == 'temp' || password == 'temporal10';
-    await _storage.saveTokens(
-      access: _demoAccess,
-      refresh: _demoRefresh,
-      passTemporal: temporal,
-    );
+  /// El login del backend solo devuelve tokens. /pro/estado/ indica es_pro, y si la
+  /// contraseña es temporal responde 403 PASSWORD_TEMPORAL_LOCK (RN-07).
+  Future<Usuario> _cargarEstado(String username) async {
+    var esPro = false;
+    var temporal = false;
+    try {
+      final resp = await _dio.get(ApiConstants.proEstado);
+      esPro = resp.data['es_pro'] == true;
+    } on DioException catch (e) {
+      final ex = AppException.fromDioError(e);
+      if (ex.codigo != 'PASSWORD_TEMPORAL_LOCK') throw ex;
+      temporal = true;
+    }
+    await _storage.setIsPro(esPro);
+    await _storage.setPassTemporal(temporal);
     return Usuario(
-      id: 1,
+      id: 0,
       username: username,
-      email: email,
-      firstName: firstName,
-      lastName: lastName,
-      telefono: telefono,
-      fechaNacimiento: DateTime(1998, 5, 12),
+      email: '',
+      esPro: esPro,
       passTemporal: temporal,
     );
-  }
-
-  bool _isUnreachable(DioException e) {
-    return e.type == DioExceptionType.connectionError ||
-        e.type == DioExceptionType.connectionTimeout ||
-        e.type == DioExceptionType.unknown;
   }
 }
