@@ -1,3 +1,4 @@
+import java.util.Base64
 import java.util.Properties
 
 plugins {
@@ -63,22 +64,10 @@ gradle.taskGraph.whenReady {
             (it.name.startsWith("assemble") || it.name.startsWith("bundle") || it.name.startsWith("package"))
     }
     if (esRelease) {
-        if (!keystorePropertiesFile.exists()) {
-            throw GradleException(
-                "Falta android/key.properties. Copia android/key.properties.example a " +
-                    "android/key.properties y completa storePassword, keyPassword, keyAlias y storeFile " +
-                    "con los datos REALES de tu keystore de subida (no se versiona).",
-            )
-        }
-        val faltantes = listOf("storePassword", "keyPassword", "keyAlias", "storeFile")
-            .filter { keystoreProperties.getProperty(it).isNullOrBlank() || keystoreProperties.getProperty(it) == "CAMBIAR" }
-        if (faltantes.isNotEmpty()) {
-            throw GradleException("android/key.properties está incompleto o con valores de ejemplo: ${faltantes.joinToString()}")
-        }
         // Flutter pasa los --dart-define como base64("CLAVE=valor") separados por comas.
         val defines = (project.findProperty("dart-defines") as String?)
             ?.split(",")
-            ?.mapNotNull { runCatching { String(java.util.Base64.getDecoder().decode(it)) }.getOrNull() }
+            ?.mapNotNull { runCatching { String(Base64.getDecoder().decode(it)) }.getOrNull() }
             ?.filter { it.contains("=") }
             ?.associate { it.substringBefore("=") to it.substringAfter("=") }
             ?: emptyMap()
@@ -93,6 +82,18 @@ gradle.taskGraph.whenReady {
             throw GradleException(
                 "Falta --dart-define=API_BASE_URL=https://<tu-backend>/api (sin él, un release apuntaría al backend local).",
             )
+        }
+        if (!keystorePropertiesFile.exists()) {
+            throw GradleException(
+                "Falta android/key.properties. Copia android/key.properties.example a " +
+                    "android/key.properties y completa storePassword, keyPassword, keyAlias y storeFile " +
+                    "con los datos REALES de tu keystore de subida (no se versiona).",
+            )
+        }
+        val faltantes = listOf("storePassword", "keyPassword", "keyAlias", "storeFile")
+            .filter { keystoreProperties.getProperty(it).isNullOrBlank() || keystoreProperties.getProperty(it) == "CAMBIAR" }
+        if (faltantes.isNotEmpty()) {
+            throw GradleException("android/key.properties está incompleto o con valores de ejemplo: ${faltantes.joinToString()}")
         }
         val almacen = file(keystoreProperties.getProperty("storeFile"))
         if (!almacen.exists()) {
