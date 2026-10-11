@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/avatar_usuario.dart';
 import '../../../../core/widgets/icono_pro.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../application/quinielas_providers.dart';
@@ -146,15 +147,11 @@ class _HomeDrawer extends ConsumerWidget {
                 ],
               ),
               accountEmail: Text('@${user?.username ?? ''}'),
-              currentAccountPicture: CircleAvatar(
-                backgroundColor: AppColors.goldAccent,
-                backgroundImage: foto != null ? NetworkImage(foto) : null,
-                child: foto == null
-                    ? Text(
-                        (user?.username.isNotEmpty == true) ? user!.username[0].toUpperCase() : '',
-                        style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
-                      )
-                    : null,
+              currentAccountPicture: AvatarUsuario(
+                nombre: user?.username ?? '',
+                fotoUrl: foto,
+                radio: 32,
+                fondo: AppColors.goldAccent,
               ),
             ),
             ListTile(

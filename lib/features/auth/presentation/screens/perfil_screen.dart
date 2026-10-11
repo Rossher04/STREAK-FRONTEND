@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/avatar_usuario.dart';
 import '../../../quinielas/presentation/widgets/quiniela_widgets.dart';
 import '../../application/auth_controller.dart';
 import '../../data/auth_repository.dart';
@@ -77,12 +78,6 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
   Widget build(BuildContext context) {
     final user = ref.watch(authControllerProvider).user;
     final fotoUrl = user?.fotoUrl;
-    ImageProvider? imagen;
-    if (_fotoPreview != null) {
-      imagen = MemoryImage(_fotoPreview!);
-    } else if (fotoUrl != null) {
-      imagen = NetworkImage(fotoUrl);
-    }
     final offlineDesde = ref.watch(authControllerProvider.select((s) => s.offlineDesde));
     return Scaffold(
       appBar: AppBar(title: const Text('Mi perfil')),
@@ -103,14 +98,20 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
               excludeSemantics: true,
               child: GestureDetector(
                 onTap: _pickPhoto,
-                child: CircleAvatar(
-                  radius: 44,
-                  backgroundColor: AppColors.creamBackground,
-                  backgroundImage: imagen,
-                  child: imagen == null
-                      ? const Icon(Icons.camera_alt, color: AppColors.primaryBlue, size: 32)
-                      : null,
-                ),
+                child: _fotoPreview != null
+                    ? CircleAvatar(
+                        radius: 44,
+                        backgroundColor: AppColors.creamBackground,
+                        backgroundImage: MemoryImage(_fotoPreview!),
+                      )
+                    : (fotoUrl == null
+                        ? const CircleAvatar(
+                            radius: 44,
+                            backgroundColor: AppColors.creamBackground,
+                            child: Icon(Icons.camera_alt, color: AppColors.primaryBlue, size: 32),
+                          )
+                        // Si la imagen del servidor no carga (404) se muestra la inicial.
+                        : AvatarUsuario(nombre: user?.username ?? '', fotoUrl: fotoUrl, radio: 44)),
               ),
             ),
           ),
