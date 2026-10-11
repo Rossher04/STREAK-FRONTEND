@@ -79,12 +79,12 @@ class ParticipanteDetalleScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('${fechaLocal(p.fechaHora)} · ${textoEstado(p)}'),
-                            Text('Pronóstico: ${textoPronosticoParticipante(
+                            Text(_lineaPronostico(textoPronosticoParticipante(
                               pronostico: p.pronostico,
                               esPropio: d.usuarioId == yo,
                               fechaHora: p.fechaHora,
                               ahoraServidor: ahora,
-                            )}'),
+                            ))),
                           ],
                         ),
                         isThreeLine: true,
@@ -105,3 +105,7 @@ class ParticipanteDetalleScreen extends ConsumerWidget {
     );
   }
 }
+
+/// "Pronóstico: 2 - 1", pero sin repetir la palabra cuando el texto ya es una frase ("Sin pronóstico").
+String _lineaPronostico(String texto) =>
+    (texto.startsWith('Sin ') || texto.startsWith('Oculto')) ? texto : 'Pronóstico: $texto';
