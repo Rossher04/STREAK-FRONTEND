@@ -1,0 +1,5 @@
+# Declara el tag de los tests que reescriben docs/capturas/*.png (ver test_e2e/capturas_test.dart).
+# Se omiten por defecto: solo corren con `-t capturas --dart-define=CAPTURAS=true`.
+# (package:test no permite un exclude_tags por defecto que `-t` pueda anular: ambos se combinan.)
+tags:
+  capturas:
