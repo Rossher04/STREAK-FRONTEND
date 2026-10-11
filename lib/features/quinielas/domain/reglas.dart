@@ -71,6 +71,23 @@ bool puedeEditarPronostico({
   return ahoraServidor.isBefore(cierreDe(fechaHora));
 }
 
+const _diasSemana = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];
+
+/// Cuándo cierra la edición, en hora local y diciendo el día para que no parezca que es hoy:
+/// "Cierra hoy a las 17:13", "Cierra mañana a las 09:05" o "Cierra mar 13 · 17:13".
+/// `cierre` y `ahora` pueden venir en UTC; el día se compara en hora local.
+String textoCierre({required DateTime cierre, required DateTime ahora}) {
+  String dos(int n) => n.toString().padLeft(2, '0');
+  final c = cierre.toLocal();
+  final a = ahora.toLocal();
+  final hora = '${dos(c.hour)}:${dos(c.minute)}';
+  // Días de calendario de diferencia (en UTC para que el horario de verano no altere la cuenta).
+  final dias = DateTime.utc(c.year, c.month, c.day).difference(DateTime.utc(a.year, a.month, a.day)).inDays;
+  if (dias == 0) return 'Cierra hoy a las $hora';
+  if (dias == 1) return 'Cierra mañana a las $hora';
+  return 'Cierra ${_diasSemana[c.weekday - 1]} ${c.day} · $hora';
+}
+
 /// Cuenta regresiva "mm:ss" (o "h:mm:ss") hasta el cierre, solo en la última hora;
 /// null si falta más de una hora o ya cerró.
 String? cuentaRegresiva(DateTime fechaHora, DateTime ahoraServidor) {

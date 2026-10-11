@@ -129,7 +129,7 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
       estadoTexto =
           'Cerrado · los pronósticos cierran $minutosCierre min antes';
     } else {
-      estadoTexto = 'Cierra a las ${horaLocal(cierreDe(p.fechaHora))}';
+      estadoTexto = textoCierre(cierre: cierreDe(p.fechaHora), ahora: ahora);
     }
 
     return Card(

@@ -72,6 +72,35 @@ void main() {
     test('torneo finalizado', () => expect(editable(finalizado: true), isFalse));
   });
 
+  group('textoCierre (hora local, con día)', () {
+    String t(DateTime ahoraLocal, DateTime cierreLocal) =>
+        textoCierre(cierre: cierreLocal.toUtc(), ahora: ahoraLocal.toUtc());
+
+    test('hoy', () {
+      expect(t(DateTime(2026, 10, 11, 10), DateTime(2026, 10, 11, 17, 13)), 'Cierra hoy a las 17:13');
+    });
+    test('mañana', () {
+      expect(t(DateTime(2026, 10, 11, 10), DateTime(2026, 10, 12, 9, 5)), 'Cierra mañana a las 09:05');
+    });
+    test('otro día: dice el día de la semana y el número (el caso que parecía "hoy")', () {
+      expect(t(DateTime(2026, 10, 11, 17, 0), DateTime(2026, 10, 13, 17, 13)), 'Cierra mar 13 · 17:13');
+      expect(t(DateTime(2026, 10, 11, 17, 0), DateTime(2026, 10, 14, 11, 55)), 'Cierra mié 14 · 11:55');
+    });
+    test('cruzar la medianoche es mañana aunque falten pocos minutos', () {
+      expect(t(DateTime(2026, 10, 11, 23, 59), DateTime(2026, 10, 12, 0, 5)), 'Cierra mañana a las 00:05');
+    });
+    test('cambio de mes', () {
+      expect(t(DateTime(2026, 10, 31, 12), DateTime(2026, 11, 1, 8)), 'Cierra mañana a las 08:00');
+      expect(t(DateTime(2026, 10, 31, 12), DateTime(2026, 11, 2, 8)), 'Cierra lun 2 · 08:00');
+    });
+    test('acepta instantes en UTC y compara los días en hora local', () {
+      final ahora = DateTime(2026, 10, 11, 10);
+      final cierre = DateTime(2026, 10, 11, 17, 13);
+      expect(textoCierre(cierre: cierre.toUtc(), ahora: ahora.toUtc()), 'Cierra hoy a las 17:13');
+      expect(cierre.toUtc().isUtc, isTrue);
+    });
+  });
+
   group('cuentaRegresiva', () {
     final inicio = DateTime.utc(2026, 10, 12, 20, 0);
     test('más de una hora: no hay cuenta', () {

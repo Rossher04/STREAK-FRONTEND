@@ -8,7 +8,8 @@ import 'package:streak_mobile/features/quinielas/presentation/screens/quiniela_a
 import 'package:streak_mobile/features/quinielas/presentation/widgets/partido_pendiente_card.dart';
 import 'package:streak_mobile/features/quinielas/presentation/widgets/tab_pendientes.dart';
 
-final _ahora = DateTime.utc(2026, 10, 12, 12, 0);
+// Mediodía LOCAL: los textos "hoy / mañana / mié 14" no dependen de la zona horaria de quien corra la prueba.
+final _ahora = DateTime(2026, 10, 12, 12).toUtc();
 
 Map<String, dynamic> _partido(int id, int fase, DateTime inicio, {String estado = 'PROGRAMADO', Map<String, dynamic>? pron}) => {
       'id': id,
@@ -74,7 +75,8 @@ void main() {
 
     expect(find.byType(PartidoPendienteCard), findsNWidgets(3));
     expect(find.text('GUARDAR PRONÓSTICO'), findsNWidgets(2)); // abierto + eliminatoria (sin pronóstico)
-    expect(find.textContaining('Cierra a las'), findsNWidgets(2));
+    expect(find.text('Cierra hoy a las 16:55'), findsOneWidget); // +5 h: cierra 5 min antes
+    expect(find.text('Cierra mié 14 · 11:55'), findsOneWidget); // +2 días: dice el día
 
     // El de +3 min ya está cerrado (cierra 5 min antes) y muestra el pronóstico guardado.
     expect(find.textContaining('Cerrado · los pronósticos cierran 5 min antes'), findsOneWidget);
@@ -85,6 +87,22 @@ void main() {
     expect(sumar, findsNWidgets(2), reason: 'el cerrado no muestra steppers');
     final botones = tester.widgetList<IconButton>(sumar).toList();
     expect(botones.every((b) => b.onPressed != null), isTrue);
+  });
+
+  testWidgets('el cierre dice hoy, mañana o el día', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(420, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _montar(
+      tester,
+      tab(_vista(partidos: [
+        _partido(1, 1, _ahora.add(const Duration(hours: 5))),
+        _partido(2, 1, _ahora.add(const Duration(days: 1, hours: 5))),
+        _partido(3, 1, _ahora.add(const Duration(days: 3, hours: 5))),
+      ])),
+    );
+    expect(find.text('Cierra hoy a las 16:55'), findsOneWidget);
+    expect(find.text('Cierra mañana a las 16:55'), findsOneWidget);
+    expect(find.text('Cierra jue 15 · 16:55'), findsOneWidget);
   });
 
   testWidgets('los steppers van de 0 a 20 y habilitan guardar', (tester) async {
