@@ -1,0 +1,113 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:streak_mobile/core/network/server_clock.dart';
+import 'package:streak_mobile/features/quinielas/domain/reglas.dart';
+
+void main() {
+  group('etiquetaPuesto (RN-53)', () {
+    test('sin total', () => expect(etiquetaPuesto(1), '1.º'));
+    test('con total', () => expect(etiquetaPuesto(3, 12), '3.º de 12'));
+    test('empates comparten posición (1, 1, 3)', () {
+      expect([1, 1, 3].map((p) => etiquetaPuesto(p, 3)), ['1.º de 3', '1.º de 3', '3.º de 3']);
+    });
+  });
+
+  group('etiquetaPuntos', () {
+    String e(int pts, {String estado = 'FINALIZADO', bool pron = true}) =>
+        etiquetaPuntos(estado: estado, tienePronostico: pron, puntos: pts);
+
+    test('5, 4, 3 y 0', () {
+      expect(e(5), 'Exacto · 5 pts');
+      expect(e(4), 'Diferencia · 4 pts');
+      expect(e(3), 'Resultado · 3 pts');
+      expect(e(0), 'Fallo · 0 pts');
+    });
+    test('suspendido o cancelado no cuenta (RN-22)', () {
+      expect(e(0, estado: 'SUSPENDIDO'), '0 pts · no cuenta');
+      expect(e(0, estado: 'CANCELADO', pron: false), '0 pts · no cuenta');
+    });
+    test('sin pronóstico', () => expect(e(0, pron: false), 'Sin pronóstico · 0 pts'));
+  });
+
+  group('esFaseEliminatoria (heurística)', () {
+    test('palabras clave en tipo o nombre', () {
+      expect(esFaseEliminatoria('ELIMINATORIA', 'x'), isTrue);
+      expect(esFaseEliminatoria('', 'Octavos de final'), isTrue);
+      expect(esFaseEliminatoria('', 'Cuartos'), isTrue);
+      expect(esFaseEliminatoria('', 'Semifinales'), isTrue);
+      expect(esFaseEliminatoria('', 'Final'), isTrue);
+    });
+    test('sin distinguir tildes ni mayúsculas', () {
+      expect(esFaseEliminatoria('eliminación', ''), isTrue);
+    });
+    test('liga y grupos no son eliminatoria', () {
+      expect(esFaseEliminatoria('LIGA', 'Jornada 1'), isFalse);
+      expect(esFaseEliminatoria('GRUPOS', 'Fase de grupos'), isFalse);
+    });
+  });
+
+  group('puedeEditarPronostico (RN-37, RN-33)', () {
+    final inicio = DateTime.utc(2026, 10, 12, 20, 0);
+    bool editable({
+      String estado = 'PROGRAMADO',
+      Duration antes = const Duration(minutes: 30),
+      bool finalizado = false,
+    }) =>
+        puedeEditarPronostico(
+          estadoPartido: estado,
+          fechaHora: inicio,
+          ahoraServidor: inicio.subtract(antes),
+          torneoFinalizado: finalizado,
+        );
+
+    test('con tiempo de sobra', () => expect(editable(), isTrue));
+    test('a 5 min exactos ya está cerrado', () => expect(editable(antes: const Duration(minutes: 5)), isFalse));
+    test('a 5 min y 1 s sigue abierto', () {
+      expect(editable(antes: const Duration(minutes: 5, seconds: 1)), isTrue);
+    });
+    test('estado distinto de PROGRAMADO', () {
+      for (final e in ['EN_JUEGO', 'FINALIZADO', 'SUSPENDIDO', 'CANCELADO']) {
+        expect(editable(estado: e), isFalse, reason: e);
+      }
+    });
+    test('torneo finalizado', () => expect(editable(finalizado: true), isFalse));
+  });
+
+  group('cuentaRegresiva', () {
+    final inicio = DateTime.utc(2026, 10, 12, 20, 0);
+    test('más de una hora: no hay cuenta', () {
+      expect(cuentaRegresiva(inicio, inicio.subtract(const Duration(hours: 3))), isNull);
+    });
+    test('en la última hora cuenta hasta el cierre (5 min antes)', () {
+      expect(cuentaRegresiva(inicio, inicio.subtract(const Duration(minutes: 15))), '10:00');
+      expect(cuentaRegresiva(inicio, inicio.subtract(const Duration(minutes: 30, seconds: 5))), '25:05');
+    });
+    test('ya cerrado: null', () {
+      expect(cuentaRegresiva(inicio, inicio.subtract(const Duration(minutes: 4))), isNull);
+    });
+  });
+
+  group('ServerClock (reloj del servidor)', () {
+    test('calcula el desfase con el header Date', () {
+      final local = DateTime.utc(2026, 10, 12, 12, 0, 0);
+      final reloj = ServerClock(reloj: () => local);
+      // El servidor va 10 min por delante del teléfono.
+      reloj.actualizar('Mon, 12 Oct 2026 12:10:00 GMT');
+      expect(reloj.sincronizado, isTrue);
+      expect(reloj.desfase, const Duration(minutes: 10));
+      expect(reloj.ahora(), DateTime.utc(2026, 10, 12, 12, 10));
+    });
+    test('teléfono adelantado da desfase negativo', () {
+      final reloj = ServerClock(reloj: () => DateTime.utc(2026, 10, 12, 12, 0, 0));
+      reloj.actualizar('Mon, 12 Oct 2026 11:55:00 GMT');
+      expect(reloj.desfase, const Duration(minutes: -5));
+    });
+    test('header nulo o inválido conserva el desfase', () {
+      final reloj = ServerClock(reloj: () => DateTime.utc(2026, 10, 12, 12, 0, 0));
+      expect(reloj.sincronizado, isFalse);
+      reloj.actualizar(null);
+      reloj.actualizar('no es una fecha');
+      expect(reloj.sincronizado, isFalse);
+      expect(reloj.desfase, Duration.zero);
+    });
+  });
+}
