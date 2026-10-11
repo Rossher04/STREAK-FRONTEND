@@ -31,6 +31,17 @@ class QuinielaActivaScreen extends ConsumerWidget {
         title: const Text('Quiniela'),
         actions: [
           IconButton(
+            tooltip: 'Mis estadísticas',
+            icon: Icon(
+              Icons.insights,
+              color: ref.watch(authControllerProvider.select((s) => s.user?.esPro ?? false))
+                  ? AppColors.goldAccent
+                  : null,
+            ),
+            // No PRO: la pantalla de estadísticas muestra el acceso al paywall.
+            onPressed: () => context.push('/quinielas/$quinielaId/estadisticas'),
+          ),
+          IconButton(
             tooltip: 'Ver y compartir código',
             icon: const Icon(Icons.vpn_key_outlined),
             onPressed: () => context.push('/quinielas/$quinielaId/codigo'),

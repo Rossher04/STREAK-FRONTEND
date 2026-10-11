@@ -160,6 +160,12 @@ class AuthRepository {
     }
   }
 
+  /// Vuelve a leer /usuarios/me/ (p. ej. tras activarse PRO).
+  Future<Usuario> refrescarPerfil() async {
+    final username = await _storage.getUsername() ?? '';
+    return _cargarPerfil(username);
+  }
+
   Future<void> logout() => _storage.clearSession();
 
   /// GET /usuarios/me/. Con contraseña temporal (RN-07) el backend responde

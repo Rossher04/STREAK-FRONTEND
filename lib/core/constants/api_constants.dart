@@ -51,4 +51,5 @@ class ApiConstants {
   // Endpoints de Plan Pro (A2 / B6)
   static const String proEstado = '/pro/estado/';
   static const String proSuscribir = '/pro/suscribir/';
+  static const String proPagos = '/pro/pagos/';
 }

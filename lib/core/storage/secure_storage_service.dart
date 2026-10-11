@@ -21,6 +21,7 @@ class SecureStorageService {
   static const String _keyPassTemporal = 'streak_pass_temporal_flag';
   static const String _keyIsPro = 'streak_is_pro';
   static const String _keyUsername = 'streak_username';
+  static const String _keyProIdem = 'streak_pro_idempotency';
 
   Future<void> saveTokens({
     required String access,
@@ -62,7 +63,19 @@ class SecureStorageService {
     await _storage.write(key: _keyIsPro, value: value.toString());
   }
 
+  /// Clave de idempotencia del pago PRO en curso, por usuario. El backend solo deja reintentar
+  /// una orden pendiente con SU misma clave (409 PAGO_PENDIENTE si no), así que sobrevive a
+  /// reinicios de la app y al cierre de sesión.
+  Future<String?> getProIdempotencyKey(int userId) => _storage.read(key: '${_keyProIdem}_$userId');
+
+  Future<void> saveProIdempotencyKey(int userId, String key) =>
+      _storage.write(key: '${_keyProIdem}_$userId', value: key);
+
+  Future<void> clearProIdempotencyKey(int userId) => _storage.delete(key: '${_keyProIdem}_$userId');
+
   Future<void> clearSession() async {
-    await _storage.deleteAll();
+    for (final k in [_keyAccess, _keyRefresh, _keyPassTemporal, _keyIsPro, _keyUsername]) {
+      await _storage.delete(key: k);
+    }
   }
 }

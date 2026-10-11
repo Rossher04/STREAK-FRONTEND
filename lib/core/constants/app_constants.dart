@@ -14,6 +14,13 @@ class AppConstants {
   static const int maxParticipantesGratis = 50;
   static const int maxParticipantesPro = 100;
 
+  // Plan Pro (RN-61 a RN-65). El backend cobra STRIPE_PRO_AMOUNT (500 centavos = USD 5.00,
+  // settings.py) y no expone el precio por API, por eso se repite aquí para mostrarlo en el paywall.
+  static const String precioProUsd = '5.00';
+
+  // Clave publicable de Stripe (modo prueba): --dart-define=STRIPE_PUBLISHABLE_KEY=pk_test_...
+  static const String stripePublishableKey = String.fromEnvironment('STRIPE_PUBLISHABLE_KEY');
+
   // Tiempos Críticos (RN-37)
   static const int minutosCierrePronostico = 5;
   static const int vigenciaJwtDias = 7;

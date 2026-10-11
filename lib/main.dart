@@ -1,4 +1,8 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -11,6 +15,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es');
   await Hive.initFlutter();
+  // PaymentSheet solo existe en Android e iOS; sin clave publicable el pago queda deshabilitado.
+  if (AppConstants.stripePublishableKey.isNotEmpty && !kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+    Stripe.publishableKey = AppConstants.stripePublishableKey;
+  }
 
   runApp(
     const ProviderScope(

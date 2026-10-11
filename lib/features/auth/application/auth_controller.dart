@@ -117,6 +117,14 @@ class AuthController extends Notifier<AuthSession> {
     }
   }
 
+  Future<void> refrescarPerfil() async {
+    final user = await _repo.refrescarPerfil();
+    state = AuthSession(
+      status: user.passTemporal ? AuthStatus.needsPasswordChange : AuthStatus.authenticated,
+      user: user,
+    );
+  }
+
   Future<void> actualizarPerfil({
     required String firstName,
     required String lastName,

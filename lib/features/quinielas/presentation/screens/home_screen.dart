@@ -35,6 +35,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProvid
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppConstants.appName),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: TextButton.icon(
+              onPressed: () => context.push('/pro'),
+              icon: const Icon(Icons.workspace_premium, color: AppColors.goldAccent),
+              label: Text(
+                ref.watch(authControllerProvider.select((s) => s.user?.esPro ?? false)) ? 'PRO' : 'HAZTE PRO',
+                style: const TextStyle(color: AppColors.goldAccent, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabs,
           indicatorColor: AppColors.goldAccent,
@@ -148,6 +161,14 @@ class _HomeDrawer extends ConsumerWidget {
               onTap: () {
                 Navigator.pop(context);
                 context.push('/perfil');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.workspace_premium, color: AppColors.goldAccent),
+              title: Text(user?.esPro == true ? 'Tu plan PRO' : 'Hazte PRO'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/pro');
               },
             ),
             const Spacer(),
