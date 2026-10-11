@@ -50,5 +50,11 @@ def torneo(nombre, estado, jugados):
 torneo('Liga E2E En Curso', 'ACTIVO', jugados=True)
 torneo('Copa E2E Nueva', 'ACTIVO', jugados=False)
 torneo('Borrador E2E', 'BORRADOR', jugados=False)
-torneo('Clausura E2E', 'FINALIZADO', jugados=True)
+clausura = torneo('Clausura E2E', 'FINALIZADO', jugados=True)
+
+# ana participa en una quiniela de un torneo ya finalizado (para probar /quinielas/historial/).
+ana = Usuario.objects.get(username='ana')
+q = Quiniela.objects.create(nombre='Quiniela Clausura', torneo=clausura, creador=ana,
+                            codigo_unico='CLAU25', max_participantes=10)
+Participante.objects.create(quiniela=q, usuario=ana)
 print('seed ok')

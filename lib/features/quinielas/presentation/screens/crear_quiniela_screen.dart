@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../application/quinielas_controller.dart';
-import '../../data/mock_catalog.dart';
+import '../../../auth/application/auth_controller.dart';
+import '../../application/quinielas_providers.dart';
 import '../../domain/models.dart';
 import '../widgets/scoring_banner.dart';
 
@@ -17,15 +18,9 @@ class CrearQuinielaScreen extends ConsumerStatefulWidget {
 
 class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
   final _nombre = TextEditingController();
-  late Torneo _torneo;
+  int? _torneoId;
   double _max = 12;
-  bool _esPro = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _torneo = MockCatalog.activos.first;
-  }
+  bool _creando = false;
 
   @override
   void dispose() {
@@ -33,25 +28,41 @@ class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
     super.dispose();
   }
 
-  int get _tope => _esPro ? AppConstants.maxParticipantesPro : AppConstants.maxParticipantesGratis;
+  int get _tope {
+    final esPro = ref.read(authControllerProvider).user?.esPro ?? false;
+    return esPro ? AppConstants.maxParticipantesPro : AppConstants.maxParticipantesGratis;
+  }
 
-  void _crear() {
+  Future<void> _crear(List<Torneo> torneos) async {
+    final messenger = ScaffoldMessenger.of(context);
     if (_nombre.text.trim().length < 3) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('El nombre debe tener al menos 3 caracteres')),
-      );
+      messenger.showSnackBar(const SnackBar(content: Text('El nombre debe tener al menos 3 caracteres')));
       return;
     }
-    final q = ref.read(quinielasControllerProvider.notifier).crear(
-          nombre: _nombre.text.trim(),
-          torneo: _torneo,
-          maxParticipantes: _max.round(),
-        );
-    context.go('/quinielas/${q.id}/codigo');
+    final torneoId = _torneoId ?? (torneos.isNotEmpty ? torneos.first.id : null);
+    if (torneoId == null) return;
+    setState(() => _creando = true);
+    try {
+      final q = await ref.read(quinielasRepositoryProvider).crear(
+            nombre: _nombre.text.trim(),
+            torneoId: torneoId,
+            maxParticipantes: _max.round(),
+          );
+      refrescarQuinielas(ref);
+      if (mounted) context.go('/quinielas/${q.id}/codigo');
+    } on AppException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.mensaje)));
+    } finally {
+      if (mounted) setState(() => _creando = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final torneos = ref.watch(torneosActivosProvider);
+    final tope = _tope;
+    final max = _max.clamp(AppConstants.minParticipantes.toDouble(), tope.toDouble());
+
     return Scaffold(
       appBar: AppBar(title: const Text('Crear quiniela')),
       body: ListView(
@@ -61,57 +72,83 @@ class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
           const SizedBox(height: 20),
           TextField(
             controller: _nombre,
+            maxLength: 255,
             decoration: const InputDecoration(labelText: 'Nombre de la quiniela'),
           ),
-          const SizedBox(height: 16),
-          DropdownButtonFormField<Torneo>(
-            key: ValueKey(_torneo.id),
-            initialValue: _torneo,
-            decoration: const InputDecoration(labelText: 'Torneo (solo ACTIVO, RN-16)'),
-            items: MockCatalog.activos
-                .map(
-                  (t) => DropdownMenuItem(
-                    value: t,
-                    child: Text('${t.nombre} · ${t.formato}'),
-                  ),
-                )
-                .toList(),
-            onChanged: (t) {
-              if (t != null) setState(() => _torneo = t);
-            },
-          ),
           const SizedBox(height: 8),
-          if (_torneo.formato == 'GRUPOS_ELIMINATORIA')
-            const Text(
-              'En eliminatoria solo cuenta el tiempo reglamentario (90\'). Prórroga y penales no puntúan (RN-23).',
-              style: TextStyle(color: AppColors.sportsOrange, fontSize: 12),
+          torneos.when(
+            loading: () => const Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CircularProgressIndicator()),
             ),
-          const SizedBox(height: 16),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Simular Plan Pro (tope 100)'),
-            value: _esPro,
-            onChanged: (v) {
-              setState(() {
-                _esPro = v;
-                if (_max > _tope) _max = _tope.toDouble();
-              });
+            error: (e, _) => Column(
+              children: [
+                Text(
+                  e is AppException ? e.mensaje : 'No se pudieron cargar los torneos.',
+                  style: const TextStyle(color: AppColors.error),
+                ),
+                TextButton(
+                  onPressed: () => ref.invalidate(torneosProvider),
+                  child: const Text('Reintentar'),
+                ),
+              ],
+            ),
+            data: (lista) {
+              if (lista.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text(
+                    'No hay torneos activos por ahora. Vuelve a intentarlo más tarde.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                );
+              }
+              final actual = lista.firstWhere(
+                (t) => t.id == _torneoId,
+                orElse: () => lista.first,
+              );
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DropdownButtonFormField<int>(
+                    key: ValueKey(actual.id),
+                    initialValue: actual.id,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: 'Torneo (solo ACTIVO, RN-16)'),
+                    items: lista
+                        .map((t) => DropdownMenuItem(
+                              value: t.id,
+                              child: Text('${t.nombre} · ${t.temporada}', overflow: TextOverflow.ellipsis),
+                            ))
+                        .toList(),
+                    onChanged: (id) => setState(() => _torneoId = id),
+                  ),
+                  const SizedBox(height: 8),
+                  if (actual.formato == 'GRUPOS_ELIMINATORIA')
+                    const Text(
+                      'En eliminatoria solo cuenta el tiempo reglamentario (90\'). Prórroga y penales no puntúan (RN-23).',
+                      style: TextStyle(color: AppColors.sportsOrange, fontSize: 12),
+                    ),
+                  const SizedBox(height: 16),
+                  Text('Participantes: ${max.round()} (mín. ${AppConstants.minParticipantes}, máx. $tope)'),
+                  Slider(
+                    min: AppConstants.minParticipantes.toDouble(),
+                    max: tope.toDouble(),
+                    divisions: tope - AppConstants.minParticipantes,
+                    value: max,
+                    label: '${max.round()}',
+                    onChanged: (v) => setState(() => _max = v),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: _creando ? null : () => _crear(lista),
+                    child: Text(_creando ? 'CREANDO…' : 'CREAR Y VER CÓDIGO'),
+                  ),
+                ],
+              );
             },
           ),
-          Text('Participantes: ${_max.round()} (mín. ${AppConstants.minParticipantes}, máx. $_tope)'),
-          Slider(
-            min: AppConstants.minParticipantes.toDouble(),
-            max: _tope.toDouble(),
-            divisions: _tope - AppConstants.minParticipantes,
-            value: _max.clamp(
-              AppConstants.minParticipantes.toDouble(),
-              _tope.toDouble(),
-            ),
-            label: '${_max.round()}',
-            onChanged: (v) => setState(() => _max = v),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton(onPressed: _crear, child: const Text('CREAR Y VER CÓDIGO')),
         ],
       ),
     );
