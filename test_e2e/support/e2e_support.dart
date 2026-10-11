@@ -37,7 +37,13 @@ class MemoriaStorage extends SecureStorageService {
   @override
   Future<void> setIsPro(bool value) async => datos['pro'] = '$value';
   @override
-  Future<void> clearSession() async => datos.clear();
+  Future<String?> getProIdempotencyKey(int userId) async => datos['pro_$userId'];
+  @override
+  Future<void> saveProIdempotencyKey(int userId, String key) async => datos['pro_$userId'] = key;
+  @override
+  Future<void> clearProIdempotencyKey(int userId) async => datos.remove('pro_$userId');
+  @override
+  Future<void> clearSession() async => datos.removeWhere((k, _) => !k.startsWith('pro_'));
 }
 
 /// Una "app" independiente: su propio almacenamiento y su propio contenedor Riverpod.

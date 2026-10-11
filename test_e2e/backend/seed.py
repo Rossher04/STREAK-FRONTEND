@@ -82,7 +82,7 @@ vencido = partido(grupos, lobos, aguilas, timedelta(hours=-1))           # PROGR
 en_juego = partido(grupos, lobos, tigres, timedelta(minutes=-10), 'EN_JUEGO')
 fin_exacto = partido(grupos, tigres, lobos, timedelta(days=-3), 'FINALIZADO', (2, 1))
 fin_dif = partido(grupos, lobos, leones, timedelta(days=-2), 'FINALIZADO', (1, 1))
-fin_fallo = partido(grupos, tigres, aguilas, timedelta(days=-2), 'FINALIZADO', (3, 0))
+fin_fallo = partido(grupos, tigres, aguilas, timedelta(days=-2, hours=1), 'FINALIZADO', (3, 0))
 fin_res = partido(grupos, leones, lobos, timedelta(days=-1), 'FINALIZADO', (2, 0))
 susp = partido(grupos, aguilas, tigres, timedelta(days=-1), 'SUSPENDIDO')
 
