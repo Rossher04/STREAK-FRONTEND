@@ -13,7 +13,8 @@ class CrearQuinielaScreen extends ConsumerStatefulWidget {
   const CrearQuinielaScreen({super.key});
 
   @override
-  ConsumerState<CrearQuinielaScreen> createState() => _CrearQuinielaScreenState();
+  ConsumerState<CrearQuinielaScreen> createState() =>
+      _CrearQuinielaScreenState();
 }
 
 class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
@@ -30,16 +31,20 @@ class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
 
   int get _tope {
     final esPro = ref.read(authControllerProvider).user?.esPro ?? false;
-    return esPro ? AppConstants.maxParticipantesPro : AppConstants.maxParticipantesGratis;
+    return esPro
+        ? AppConstants.maxParticipantesPro
+        : AppConstants.maxParticipantesGratis;
   }
 
   Future<void> _crear(List<Torneo> torneos) async {
     final messenger = ScaffoldMessenger.of(context);
     if (_nombre.text.trim().length < 3) {
-      messenger.showSnackBar(const SnackBar(content: Text('El nombre debe tener al menos 3 caracteres')));
+      messenger.showSnackBar(const SnackBar(
+          content: Text('El nombre debe tener al menos 3 caracteres')));
       return;
     }
-    final torneoId = _torneoId ?? (torneos.isNotEmpty ? torneos.first.id : null);
+    final torneoId =
+        _torneoId ?? (torneos.isNotEmpty ? torneos.first.id : null);
     if (torneoId == null) return;
     setState(() => _creando = true);
     try {
@@ -47,7 +52,8 @@ class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
             nombre: _nombre.text.trim(),
             torneoId: torneoId,
             maxParticipantes: _max
-                .clamp(AppConstants.minParticipantes.toDouble(), _tope.toDouble())
+                .clamp(
+                    AppConstants.minParticipantes.toDouble(), _tope.toDouble())
                 .round(),
           );
       refrescarQuinielas(ref);
@@ -63,7 +69,8 @@ class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
   Widget build(BuildContext context) {
     final torneos = ref.watch(torneosActivosProvider);
     final tope = _tope;
-    final max = _max.clamp(AppConstants.minParticipantes.toDouble(), tope.toDouble());
+    final max =
+        _max.clamp(AppConstants.minParticipantes.toDouble(), tope.toDouble());
 
     return Scaffold(
       appBar: AppBar(title: const Text('Crear quiniela')),
@@ -75,7 +82,8 @@ class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
           TextField(
             controller: _nombre,
             maxLength: 255,
-            decoration: const InputDecoration(labelText: 'Nombre de la quiniela'),
+            decoration:
+                const InputDecoration(labelText: 'Nombre de la quiniela'),
           ),
           const SizedBox(height: 8),
           torneos.when(
@@ -86,7 +94,9 @@ class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
             error: (e, _) => Column(
               children: [
                 Text(
-                  e is AppException ? e.mensaje : 'No se pudieron cargar los torneos.',
+                  e is AppException
+                      ? e.mensaje
+                      : 'No se pudieron cargar los torneos.',
                   style: const TextStyle(color: AppColors.error),
                 ),
                 TextButton(
@@ -113,39 +123,62 @@ class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DropdownButtonFormField<int>(
-                    key: ValueKey(actual.id),
-                    initialValue: actual.id,
-                    isExpanded: true,
-                    decoration: const InputDecoration(labelText: 'Torneo (solo ACTIVO, RN-16)'),
-                    items: lista
-                        .map((t) => DropdownMenuItem(
-                              value: t.id,
-                              child: Text('${t.nombre} · ${t.temporada}', overflow: TextOverflow.ellipsis),
-                            ))
-                        .toList(),
-                    onChanged: (id) => setState(() => _torneoId = id),
+                  // Cada bloque va en su propio nodo semántico: sin esto el lector de pantalla fundía el
+                  // selector de torneo con el deslizador y el botón en un único elemento.
+                  Semantics(
+                    container: true,
+                    explicitChildNodes: true,
+                    child: DropdownButtonFormField<int>(
+                      key: ValueKey(actual.id),
+                      initialValue: actual.id,
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                          labelText: 'Torneo (solo ACTIVO, RN-16)'),
+                      items: lista
+                          .map((t) => DropdownMenuItem(
+                                value: t.id,
+                                child: Text('${t.nombre} · ${t.temporada}',
+                                    overflow: TextOverflow.ellipsis),
+                              ))
+                          .toList(),
+                      onChanged: (id) => setState(() => _torneoId = id),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   if (actual.formato == 'GRUPOS_ELIMINATORIA')
                     const Text(
                       'En eliminatoria solo cuenta el tiempo reglamentario (90\'). Prórroga y penales no puntúan (RN-23).',
-                      style: TextStyle(color: AppColors.textPrimary, fontSize: 12),
+                      style:
+                          TextStyle(color: AppColors.textPrimary, fontSize: 12),
                     ),
                   const SizedBox(height: 16),
-                  Text('Participantes: ${max.round()} (mín. ${AppConstants.minParticipantes}, máx. $tope)'),
-                  Slider(
-                    min: AppConstants.minParticipantes.toDouble(),
-                    max: tope.toDouble(),
-                    divisions: tope - AppConstants.minParticipantes,
-                    value: max,
-                    label: '${max.round()}',
-                    onChanged: (v) => setState(() => _max = v),
+                  Semantics(
+                    container: true,
+                    explicitChildNodes: true,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                            'Participantes: ${max.round()} (mín. ${AppConstants.minParticipantes}, máx. $tope)'),
+                        Slider(
+                          min: AppConstants.minParticipantes.toDouble(),
+                          max: tope.toDouble(),
+                          divisions: tope - AppConstants.minParticipantes,
+                          value: max,
+                          label: '${max.round()}',
+                          onChanged: (v) => setState(() => _max = v),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
-                  ElevatedButton(
-                    onPressed: _creando ? null : () => _crear(lista),
-                    child: Text(_creando ? 'CREANDO…' : 'CREAR Y VER CÓDIGO'),
+                  Semantics(
+                    container: true,
+                    explicitChildNodes: true,
+                    child: ElevatedButton(
+                      onPressed: _creando ? null : () => _crear(lista),
+                      child: Text(_creando ? 'CREANDO…' : 'CREAR Y VER CÓDIGO'),
+                    ),
                   ),
                 ],
               );
