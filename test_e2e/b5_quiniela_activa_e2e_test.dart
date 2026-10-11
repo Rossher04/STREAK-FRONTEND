@@ -4,7 +4,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:streak_mobile/core/errors/app_exception.dart';
 import 'package:streak_mobile/core/network/server_clock.dart';
-import 'package:streak_mobile/features/quinielas/application/quinielas_providers.dart';
 import 'package:streak_mobile/features/quinielas/data/quinielas_repository.dart';
 import 'package:streak_mobile/features/quinielas/domain/quiniela_vista.dart';
 import 'package:streak_mobile/features/quinielas/domain/reglas.dart';
@@ -20,19 +19,6 @@ class _SinRed implements HttpClientAdapter {
 
   @override
   void close({bool force = false}) {}
-}
-
-extension on AppE2E {
-  QuinielasRepository get repo => container.read(quinielasRepositoryProvider);
-  int get usuarioId => sesion.user!.id;
-
-  Future<int> idQuiniela(String nombre) async {
-    final mias = await repo.mias();
-    return mias.firstWhere((q) => q.nombre == nombre).id;
-  }
-
-  Future<QuinielaVista> vista(String nombre) async =>
-      repo.vista(await idQuiniela(nombre), usuarioId: usuarioId);
 }
 
 Partido _partido(QuinielaVista v, String local, String visita, {String? estado}) => v.partidos.firstWhere(

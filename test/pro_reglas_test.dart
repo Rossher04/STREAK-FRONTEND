@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:streak_mobile/features/pro/domain/pro_reglas.dart';
+import 'package:streak_mobile/features/auth/domain/usuario.dart';
 import 'package:streak_mobile/features/quinielas/domain/quiniela_vista.dart';
 
 Partido _p(int id, int dia, {String estado = 'FINALIZADO', int? pts, Marcador? pron = const Marcador(1, 0)}) => Partido(
@@ -21,6 +22,12 @@ FilaTabla _f(int usuario, int pts) =>
     FilaTabla(participanteId: usuario, usuarioId: usuario, username: 'u$usuario', puntos: pts, posicion: 1);
 
 void main() {
+  test('puedeVerEstadisticas: solo con plan PRO', () {
+    expect(puedeVerEstadisticas(null), isFalse);
+    expect(puedeVerEstadisticas(const Usuario(id: 1, username: 'a', email: 'a@a')), isFalse);
+    expect(puedeVerEstadisticas(const Usuario(id: 1, username: 'a', email: 'a@a', esPro: true)), isTrue);
+  });
+
   group('planEspera (backoff)', () {
     test('suma exactamente 30 s y empieza en 1 s', () {
       final e = planEspera();

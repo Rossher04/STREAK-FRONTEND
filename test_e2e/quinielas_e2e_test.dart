@@ -2,33 +2,13 @@
 // Ver instrucciones de ejecución en auth_e2e_test.dart.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:streak_mobile/core/errors/app_exception.dart';
-import 'package:streak_mobile/core/network/dio_client.dart';
 import 'package:streak_mobile/features/quinielas/application/quinielas_providers.dart';
-import 'package:streak_mobile/features/quinielas/domain/models.dart';
 import 'package:streak_mobile/features/quinielas/presentation/screens/unirse_quiniela_screen.dart';
 
 import 'support/e2e_support.dart';
 
 Matcher _error(String codigo) =>
     isA<AppException>().having((e) => e.codigo, 'codigo', codigo);
-
-extension on AppE2E {
-  Future<List<Quiniela>> mias() => container.read(quinielasRepositoryProvider).mias();
-
-  Future<List<dynamic>> participantes(int quinielaId) async {
-    final resp = await container.read(dioProvider).get('/quinielas/$quinielaId/participantes/');
-    return resp.data as List<dynamic>;
-  }
-
-  Future<Quiniela> crear(String nombre, int torneoId, int max) => container
-      .read(quinielasRepositoryProvider)
-      .crear(nombre: nombre, torneoId: torneoId, maxParticipantes: max);
-
-  Future<Torneo> torneoActivo(String nombre) async {
-    final torneos = await container.read(quinielasRepositoryProvider).torneos();
-    return torneos.firstWhere((t) => t.nombre == nombre && t.esActivo);
-  }
-}
 
 void main() {
   late AppE2E a; // creador

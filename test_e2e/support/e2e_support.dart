@@ -3,7 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:streak_mobile/core/storage/cache_store.dart';
 import 'package:streak_mobile/core/storage/secure_storage_service.dart';
 import 'package:streak_mobile/features/auth/application/auth_controller.dart';
+import 'package:streak_mobile/core/network/dio_client.dart';
 import 'package:streak_mobile/features/auth/domain/usuario.dart';
+import 'package:streak_mobile/features/quinielas/application/quinielas_providers.dart';
+import 'package:streak_mobile/features/quinielas/data/quinielas_repository.dart';
+import 'package:streak_mobile/features/quinielas/domain/models.dart';
+import 'package:streak_mobile/features/quinielas/domain/quiniela_vista.dart';
 
 const clave = 'Clave1234x';
 
@@ -84,4 +89,30 @@ class AppE2E {
   }
 
   void cerrar() => container.dispose();
+}
+
+/// Atajos para escribir las pruebas e2e sin repetir llamadas al repositorio.
+extension AtajosE2E on AppE2E {
+  QuinielasRepository get repo => container.read(quinielasRepositoryProvider);
+  int get usuarioId => sesion.user!.id;
+
+  Future<List<Quiniela>> mias() => repo.mias();
+
+  /// Respuesta cruda de GET /quinielas/{id}/participantes/.
+  Future<List<dynamic>> participantes(int quinielaId) async {
+    final resp = await container.read(dioProvider).get('/quinielas/$quinielaId/participantes/');
+    return resp.data as List<dynamic>;
+  }
+
+  Future<Quiniela> crear(String nombre, int torneoId, int max) =>
+      repo.crear(nombre: nombre, torneoId: torneoId, maxParticipantes: max);
+
+  Future<Torneo> torneoActivo(String nombre) async {
+    final torneos = await repo.torneos();
+    return torneos.firstWhere((t) => t.nombre == nombre && t.esActivo);
+  }
+
+  Future<int> idQuiniela(String nombre) async => (await mias()).firstWhere((q) => q.nombre == nombre).id;
+
+  Future<QuinielaVista> vista(String nombre) async => repo.vista(await idQuiniela(nombre), usuarioId: usuarioId);
 }

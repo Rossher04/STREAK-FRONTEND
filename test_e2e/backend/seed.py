@@ -95,4 +95,11 @@ for part, partido_, gl, gv in [
 ]:
     Pronostico.objects.create(participante=part, partido=partido_, goles_local_pred=gl, goles_visita_pred=gv)
 # Puntos esperados: ana 5+4+3+0 = 12; beto 3+5 = 8; dani 5+3 = 8 (empate en el 2.º puesto).
+
+# ---- Recorrido completo: dos partidos futuros que el test finaliza con admin.py ----
+t6 = Torneo.objects.create(nombre='Torneo Recorrido E2E', formato='LIGA', temporada='2026', estado='ACTIVO')
+f6 = Fase.objects.create(torneo=t6, nombre='Jornada 1', orden=1, tipo='LIGA')
+halcones, pumas, osos, zorros = [Equipo.objects.create(torneo=t6, nombre=n) for n in ('Halcones', 'Pumas', 'Osos', 'Zorros')]
+Partido.objects.create(torneo=t6, fase=f6, equipo_local=halcones, equipo_visita=pumas, fecha_hora=ahora + timedelta(days=2))
+Partido.objects.create(torneo=t6, fase=f6, equipo_local=osos, equipo_visita=zorros, fecha_hora=ahora + timedelta(days=3))
 print('seed ok')

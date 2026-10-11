@@ -3,6 +3,7 @@ library;
 
 import 'dart:math';
 
+import '../../auth/domain/usuario.dart';
 import '../../quinielas/domain/quiniela_vista.dart';
 
 /// Esperas sucesivas (backoff exponencial acotado) para consultar /pro/estado/ hasta que el
@@ -31,6 +32,9 @@ String generarClaveIdempotencia([Random? azar]) {
   final r = azar ?? Random.secure();
   return List.generate(16, (_) => r.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
 }
+
+/// Las estadísticas avanzadas son una función del plan PRO (RN-61): sin PRO se muestra el acceso al plan.
+bool puedeVerEstadisticas(Usuario? usuario) => usuario?.esPro == true;
 
 class EstadisticasPro {
   const EstadisticasPro({

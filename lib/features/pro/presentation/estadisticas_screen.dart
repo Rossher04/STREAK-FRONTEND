@@ -20,7 +20,7 @@ class EstadisticasScreen extends ConsumerWidget {
     final user = ref.watch(authControllerProvider).user;
     final datos = ref.watch(quinielaVistaProvider(quinielaId));
 
-    if (user?.esPro != true) {
+    if (!puedeVerEstadisticas(user)) {
       return Scaffold(
         appBar: AppBar(title: const Text('Mis estadísticas')),
         body: Center(
