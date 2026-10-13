@@ -1,192 +1,39 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:streak_mobile/core/widgets/streak_icon.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/app_exception.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/avatar_usuario.dart';
-import '../../../../core/widgets/icono_pro.dart';
+import '../../../../core/theme/streak_theme.dart';
+import '../../../../core/widgets/barra_inferior.dart';
+import '../../../auth/presentation/widgets/panel_lateral.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../application/quinielas_providers.dart';
 import '../../domain/models.dart';
 import '../widgets/quiniela_widgets.dart';
 
-class HomeScreen extends ConsumerStatefulWidget {
+/// Inicio (07/08): avatar que abre el panel lateral, wordmark y barra inferior.
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
-  @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends ConsumerState<HomeScreen> with SingleTickerProviderStateMixin {
-  late final TabController _tabs;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabs = TabController(length: 2, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabs.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppConstants.appName),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: TextButton.icon(
-              onPressed: () => context.push('/pro'),
-              icon: const Icon(Icons.workspace_premium, color: AppColors.goldAccent),
-              label: Text(
-                ref.watch(authControllerProvider.select((s) => s.user?.esPro ?? false)) ? 'PRO' : 'HAZTE PRO',
-                style: const TextStyle(color: AppColors.goldAccent, fontWeight: FontWeight.w800),
-              ),
-            ),
-          ),
-        ],
-        bottom: TabBar(
-          controller: _tabs,
-          indicatorColor: AppColors.goldAccent,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(text: 'Mis quinielas'),
-            Tab(text: 'Historial'),
-          ],
-        ),
+        leading: const BotonPanelLateral(),
+        leadingWidth: 64,
+        centerTitle: true,
+        title: Text(AppConstants.appName, style: StreakText.wordmarkBarra),
       ),
-      drawer: const _HomeDrawer(),
-      body: TabBarView(
-        controller: _tabs,
-        children: const [
-          _QuinielaList(historial: false),
-          _QuinielaList(historial: true),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.sportsOrange,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Nueva'),
-        onPressed: () => _showCreateSheet(context),
-      ),
-    );
-  }
-
-  void _showCreateSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.emoji_events, color: AppColors.primaryBlue),
-              title: const Text('Crear quiniela'),
-              onTap: () {
-                Navigator.pop(ctx);
-                context.push('/quinielas/crear');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.group_add, color: AppColors.sportsOrange),
-              title: const Text('Unirse con código'),
-              onTap: () {
-                Navigator.pop(ctx);
-                context.push('/quinielas/unirse');
-              },
-            ),
-          ],
-        ),
-      ),
+      drawer: const PanelLateral(),
+      body: const ListaQuinielas(historial: false),
+      bottomNavigationBar: const BarraInferior(activo: DestinoBarra.inicio),
     );
   }
 }
 
-class _HomeDrawer extends ConsumerWidget {
-  const _HomeDrawer();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authControllerProvider).user;
-    final foto = user?.fotoUrl;
-    return Drawer(
-      // top: false: la cabecera azul ya cubre la barra de estado (con SafeArea quedaba una franja blanca).
-      child: SafeArea(
-        top: false,
-        child: Column(
-          children: [
-            UserAccountsDrawerHeader(
-              decoration: const BoxDecoration(color: AppColors.primaryBlue),
-              accountName: Row(
-                children: [
-                  Flexible(child: Text(user?.displayName ?? '', overflow: TextOverflow.ellipsis)),
-                  if (user?.esPro == true) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.goldAccent,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Text(
-                        'PRO',
-                        style: TextStyle(
-                          color: AppColors.primaryBlue,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              accountEmail: Text('@${user?.username ?? ''}'),
-              currentAccountPicture: AvatarUsuario(
-                nombre: user?.username ?? '',
-                fotoUrl: foto,
-                radio: 32,
-                fondo: AppColors.goldAccent,
-              ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.person_outline),
-              title: const Text('Mi perfil'),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/perfil');
-              },
-            ),
-            ListTile(
-              leading: const SizedBox(width: 24, child: Center(child: IconoPro(radio: 12))),
-              title: Text(user?.esPro == true ? 'Tu plan PRO' : 'Hazte PRO'),
-              onTap: () {
-                Navigator.pop(context);
-                context.push('/pro');
-              },
-            ),
-            const Spacer(),
-            ListTile(
-              leading: const Icon(Icons.logout, color: AppColors.error),
-              title: const Text('Cerrar sesión'),
-              onTap: () => ref.read(authControllerProvider.notifier).logout(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _QuinielaList extends ConsumerWidget {
-  const _QuinielaList({required this.historial});
+class ListaQuinielas extends ConsumerWidget {
+  const ListaQuinielas({super.key, required this.historial});
 
   final bool historial;
 
@@ -261,7 +108,7 @@ class _QuinielaList extends ConsumerWidget {
                   ),
                   isThreeLine: true,
                   trailing: historial
-                      ? const Icon(Icons.lock_outline, color: AppColors.textSecondary)
+                      ? const Icon(Icons.lock_outline, color: StreakColors.muted)
                       : const Icon(Icons.chevron_right),
                   onTap: () => context.push('/quinielas/${q.id}'),
                 ),
@@ -276,7 +123,7 @@ class _QuinielaList extends ConsumerWidget {
     if (offlineDesde == null) return lista;
     return Column(
       children: [
-        BannerAviso(icono: Icons.wifi_off, texto: 'Sin conexión · datos de ${horaLocal(offlineDesde)}'),
+        BannerAviso(icono: StreakIcons.retry, texto: 'Sin conexión · datos de ${horaLocal(offlineDesde)}'),
         Expanded(child: lista),
       ],
     );
@@ -297,9 +144,9 @@ class _Mensaje extends StatelessWidget {
       padding: const EdgeInsets.all(32),
       children: [
         const SizedBox(height: 80),
-        Icon(icono, size: 56, color: AppColors.textSecondary),
+        Icon(icono, size: 56, color: StreakColors.muted),
         const SizedBox(height: 16),
-        Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textPrimary)),
+        Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: StreakColors.text)),
         const SizedBox(height: 24),
         for (final a in acciones) Padding(padding: const EdgeInsets.only(bottom: 12), child: a),
       ],

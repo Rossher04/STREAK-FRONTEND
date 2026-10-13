@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:streak_mobile/core/widgets/streak_icon.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/streak_theme.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../application/quinielas_providers.dart';
 import '../../domain/quiniela_vista.dart';
@@ -35,7 +36,7 @@ class QuinielaActivaScreen extends ConsumerWidget {
             icon: Icon(
               Icons.insights,
               color: ref.watch(authControllerProvider.select((s) => s.user?.esPro ?? false))
-                  ? AppColors.goldAccent
+                  ? StreakColors.accent
                   : null,
             ),
             // No PRO: la pantalla de estadísticas muestra el acceso al paywall.
@@ -78,19 +79,13 @@ class _Contenido extends ConsumerWidget {
         children: [
           Encabezado(vista: vista, usuarioId: usuarioId),
           if (vista.offline)
-            BannerAviso(
-              icono: Icons.wifi_off,
-              texto: 'Sin conexión · datos de ${horaLocal(vista.offlineDesde!)}',
+            BannerAviso(icono: StreakIcons.retry, texto: 'Sin conexión · datos de ${horaLocal(vista.offlineDesde!)}',
             ),
           if (vista.torneoFinalizado)
-            const BannerAviso(
-              icono: Icons.lock_outline,
-              texto: 'Quiniela finalizada · solo lectura',
-              color: AppColors.primaryBlue,
-            ),
+            const BannerAviso(icono: StreakIcons.lock, texto: 'Quiniela finalizada · solo lectura', neutro: true),
           const TabBar(
-            labelColor: AppColors.primaryBlue,
-            indicatorColor: AppColors.sportsOrange,
+            labelColor: StreakColors.cream,
+            indicatorColor: StreakColors.orange,
             tabs: [Tab(text: 'Pendientes'), Tab(text: 'Finalizados'), Tab(text: 'Tabla')],
           ),
           Expanded(
@@ -120,7 +115,7 @@ class Encabezado extends StatelessWidget {
     final fila = usuarioId == null ? null : vista.filaDe(usuarioId!);
     return Container(
       width: double.infinity,
-      color: AppColors.primaryBlue,
+      color: StreakColors.brand,
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 14),
       child: Row(
         children: [
@@ -128,12 +123,12 @@ class Encabezado extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(vista.torneo.nombre, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                Text(vista.torneo.nombre, style: const TextStyle(color: StreakColors.muted, fontSize: 12)),
                 Text(
                   vista.quiniela.nombre,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
+                  style: const TextStyle(color: StreakColors.text, fontSize: 18, fontWeight: FontWeight.w800),
                 ),
               ],
             ),
@@ -150,12 +145,12 @@ class Encabezado extends StatelessWidget {
               Text(
                 fila == null ? '—' : etiquetaPuesto(fila.posicion, vista.tabla.length),
                 key: const ValueKey('puesto'),
-                style: const TextStyle(color: AppColors.goldAccent, fontSize: 20, fontWeight: FontWeight.w900),
+                style: const TextStyle(color: StreakColors.accent, fontSize: 20, fontWeight: FontWeight.w900),
               ),
               Text(
                 fila == null ? '' : '${fila.puntos} pts',
                 key: const ValueKey('puntos'),
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                style: const TextStyle(color: StreakColors.text, fontWeight: FontWeight.w600),
               ),
             ],
           ),

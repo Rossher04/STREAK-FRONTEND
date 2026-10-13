@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:streak_mobile/core/widgets/streak_icon.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/streak_theme.dart';
 import '../../../core/widgets/icono_pro.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../quinielas/application/quinielas_providers.dart';
@@ -29,7 +30,7 @@ class EstadisticasScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const IconoPro(radio: 32, icono: Icons.lock_outline),
+                const IconoPro(radio: 32, icono: StreakIcons.lock),
                 const SizedBox(height: 16),
                 const Text('Las estadísticas avanzadas son parte del plan PRO.', textAlign: TextAlign.center),
                 const SizedBox(height: 16),
@@ -69,7 +70,7 @@ class _Contenido extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         if (vista.offline)
-          BannerAviso(icono: Icons.wifi_off, texto: 'Sin conexión · datos de ${horaLocal(vista.offlineDesde!)}'),
+          BannerAviso(icono: StreakIcons.retry, texto: 'Sin conexión · datos de ${horaLocal(vista.offlineDesde!)}'),
         Text(vista.quiniela.nombre, style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 12),
         _Dato(
@@ -104,7 +105,7 @@ class _Contenido extends StatelessWidget {
         const SizedBox(height: 8),
         const Text(
           'Solo cuentan los partidos finalizados. Un partido sin pronóstico vale 0 y rompe la racha.',
-          style: TextStyle(color: AppColors.textPrimary, fontSize: 12),
+          style: TextStyle(color: StreakColors.text, fontSize: 12),
         ),
       ],
     );
@@ -132,13 +133,13 @@ class _Dato extends StatelessWidget {
                 children: [
                   Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
-                  Text(detalle, style: const TextStyle(color: AppColors.textPrimary, fontSize: 13)),
+                  Text(detalle, style: const TextStyle(color: StreakColors.text, fontSize: 13)),
                 ],
               ),
             ),
             Text(valor,
                 key: clave,
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: AppColors.primaryBlue)),
+                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: StreakColors.cream)),
           ],
         ),
       ),

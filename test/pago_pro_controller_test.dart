@@ -59,6 +59,9 @@ class _Repo implements ProRepository {
 
   @override
   Future<List<PagoPro>> pagos() async => [];
+
+  @override
+  Future<EstadoPro> estado() async => const EstadoPro(esPro: false, montoCentavos: 500, moneda: 'USD');
 }
 
 class _Pasarela implements PasarelaPago {

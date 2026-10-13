@@ -16,6 +16,7 @@ import '../../features/pro/presentation/estadisticas_screen.dart';
 import '../../features/pro/presentation/pro_screen.dart';
 import '../../features/quinielas/presentation/screens/codigo_quiniela_screen.dart';
 import '../../features/quinielas/presentation/screens/crear_quiniela_screen.dart';
+import '../../features/quinielas/presentation/screens/historial_screen.dart';
 import '../../features/quinielas/presentation/screens/home_screen.dart';
 import '../../features/quinielas/presentation/screens/participante_detalle_screen.dart';
 import '../../features/quinielas/presentation/screens/partido_detalle_screen.dart';
@@ -81,6 +82,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const CambioPasswordForzadoScreen(),
       ),
       GoRoute(path: '/home', name: 'home', builder: (context, state) => const HomeScreen()),
+      GoRoute(path: '/historial', name: 'historial', builder: (context, state) => const HistorialScreen()),
+      GoRoute(
+        path: '/cambiar-password',
+        name: 'cambiar_password',
+        builder: (context, state) => const CambioPasswordForzadoScreen(temporal: false),
+      ),
       GoRoute(path: '/perfil', name: 'perfil', builder: (context, state) => const PerfilScreen()),
       GoRoute(
         path: '/quinielas/crear',

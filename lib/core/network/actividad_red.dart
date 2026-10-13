@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../theme/app_colors.dart';
+import '../theme/streak_theme.dart';
 
 /// Texto que se muestra cuando el servidor tarda en responder (el plan gratuito de Render se duerme y
 /// la primera petición puede tardar ~45 s).
@@ -98,9 +98,9 @@ class AvisoServidorLento extends ConsumerWidget {
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.creamBackground,
+        color: StreakColors.surface2,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.goldAccent),
+        border: Border.all(color: StreakColors.accent),
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
@@ -110,7 +110,7 @@ class AvisoServidorLento extends ConsumerWidget {
           Flexible(
             child: Text(
               textoServidorDespertando,
-              style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+              style: TextStyle(color: StreakColors.text, fontWeight: FontWeight.w600),
             ),
           ),
         ],

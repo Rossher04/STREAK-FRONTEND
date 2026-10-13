@@ -13,6 +13,11 @@ import '../domain/pro_reglas.dart';
 
 final proRepositoryProvider = Provider<ProRepository>((ref) => ProRepository(ref.watch(dioProvider)));
 
+/// Estado y precio del plan (GET /pro/estado/).
+final estadoProProvider = FutureProvider.autoDispose<EstadoPro>((ref) {
+  return ref.watch(proRepositoryProvider).estado();
+});
+
 /// Historial de pagos (GET /pro/pagos/).
 final pagosProProvider = FutureProvider.autoDispose<List<PagoPro>>((ref) {
   return ref.watch(proRepositoryProvider).pagos();

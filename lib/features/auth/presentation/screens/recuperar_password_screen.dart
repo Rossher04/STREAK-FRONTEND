@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/errors/app_exception.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/streak_theme.dart';
 import '../../application/auth_controller.dart';
 
 class RecuperarPasswordScreen extends ConsumerStatefulWidget {
@@ -55,14 +55,14 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
             ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.mark_email_read_outlined, size: 64, color: AppColors.sportsOrange),
+                  const Icon(Icons.mark_email_read_outlined, size: 64, color: StreakColors.orange),
                   const SizedBox(height: 16),
                   Text(_mensaje!, textAlign: TextAlign.center),
                   const SizedBox(height: 8),
                   const Text(
                     'Abre el enlace del correo (vale una hora) para elegir una contraseña nueva.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textPrimary),
+                    style: TextStyle(color: StreakColors.text),
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
@@ -77,7 +77,7 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
                   children: [
                     const Text(
                       'Ingresa el correo con el que te registraste.',
-                      style: TextStyle(color: AppColors.textPrimary),
+                      style: TextStyle(color: StreakColors.text),
                     ),
                     const SizedBox(height: 16),
                     TextFormField(

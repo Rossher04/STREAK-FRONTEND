@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- BOCETO de logo: sustituir por el definitivo. Estelas amarillo / naranja / amarillo. -->
+  <rect width="64" height="64" rx="16" fill="#124E73"/>
+  <circle cx="38" cy="32" r="14" fill="#F2F0CE"/>
+  <path d="M38 22l6 4.4-2.3 7h-7.4L32 26.4z" fill="#124E73"/>
+  <path d="M8 24h14M10 40h12" stroke="#F2B807" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M6 32h18" stroke="#D9420B" stroke-width="3.2" stroke-linecap="round"/>
+</svg>

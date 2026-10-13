@@ -47,6 +47,48 @@ class PagoPro {
   final DateTime fecha;
 }
 
+/// GET /pro/estado/: `{es_pro, plan: {monto_centavos, moneda, tipo, modo_prueba, max_participantes,
+/// max_participantes_gratis}}`. El precio sale de aquí (RN-65), no de una constante de la app.
+class EstadoPro {
+  const EstadoPro({
+    required this.esPro,
+    required this.montoCentavos,
+    required this.moneda,
+    this.pagoUnico = true,
+    this.modoPrueba = false,
+    this.maxParticipantes = 100,
+    this.maxParticipantesGratis = 50,
+  });
+
+  factory EstadoPro.fromJson(Map<String, dynamic> j) {
+    final plan = (j['plan'] as Map?)?.cast<String, dynamic>() ?? const {};
+    return EstadoPro(
+      esPro: j['es_pro'] == true,
+      montoCentavos: plan['monto_centavos'] as int? ?? 0,
+      moneda: (plan['moneda'] as String? ?? '').toUpperCase(),
+      pagoUnico: (plan['tipo'] ?? 'PAGO_UNICO') == 'PAGO_UNICO',
+      modoPrueba: plan['modo_prueba'] == true,
+      maxParticipantes: plan['max_participantes'] as int? ?? 100,
+      maxParticipantesGratis: plan['max_participantes_gratis'] as int? ?? 50,
+    );
+  }
+
+  final bool esPro;
+  final int montoCentavos;
+  final String moneda;
+  final bool pagoUnico;
+  final bool modoPrueba;
+  final int maxParticipantes;
+  final int maxParticipantesGratis;
+
+  /// "$5.00".
+  String get importe => '\$${(montoCentavos / 100).toStringAsFixed(2)}';
+
+  /// "$5" si es entero, si no "$5.50" (chip del panel lateral).
+  String get importeCorto =>
+      montoCentavos % 100 == 0 ? '\$${montoCentavos ~/ 100}' : importe;
+}
+
 class ProRepository {
   ProRepository(this._dio);
 
@@ -59,6 +101,11 @@ class ProRepository {
       throw AppException.fromDioError(e);
     }
   }
+
+  Future<EstadoPro> estado() => _call(() async {
+        final resp = await _dio.get(ApiConstants.proEstado);
+        return EstadoPro.fromJson(resp.data as Map<String, dynamic>);
+      });
 
   Future<bool> esPro() => _call(() async {
         final resp = await _dio.get(ApiConstants.proEstado);

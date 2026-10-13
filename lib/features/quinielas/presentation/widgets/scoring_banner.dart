@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_constants.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/streak_theme.dart';
 
 /// Banner obligatorio B3: sistema de puntaje 5 / 3 / +1 (A5 y RN-45 a RN-47).
 class ScoringBanner extends StatelessWidget {
@@ -12,9 +12,9 @@ class ScoringBanner extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.creamBackground,
+        color: StreakColors.surface2,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.goldAccent),
+        border: Border.all(color: StreakColors.accent),
       ),
       child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -23,7 +23,7 @@ class ScoringBanner extends StatelessWidget {
             'Sistema de puntaje',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: AppColors.primaryBlue,
+              color: StreakColors.cream,
             ),
           ),
           SizedBox(height: 8),

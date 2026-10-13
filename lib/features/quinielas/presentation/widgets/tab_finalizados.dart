@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/streak_theme.dart';
 import '../../domain/quiniela_vista.dart';
 import 'quiniela_widgets.dart';
 
@@ -58,7 +58,7 @@ class PartidoResueltoCard extends StatelessWidget {
             children: [
               Text(
                 '${fechaLocal(p.fechaHora)} · ${textoEstado(p)}',
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 12),
+                style: const TextStyle(color: StreakColors.text, fontSize: 12),
               ),
               const SizedBox(height: 8),
               Row(
@@ -83,7 +83,7 @@ class PartidoResueltoCard extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 p.pronostico == null ? 'No pronosticaste' : 'Mi pronóstico: ${textoMarcador(p.pronostico)}',
-                style: const TextStyle(color: AppColors.textPrimary),
+                style: const TextStyle(color: StreakColors.text),
               ),
               const SizedBox(height: 8),
               EtiquetaPuntosChip(p),

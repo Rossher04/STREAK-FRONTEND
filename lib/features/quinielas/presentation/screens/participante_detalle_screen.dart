@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/network/server_clock.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/streak_theme.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../application/quinielas_providers.dart';
 import '../../domain/quiniela_vista.dart';
@@ -48,15 +48,15 @@ class ParticipanteDetalleScreen extends ConsumerWidget {
               padding: const EdgeInsets.only(bottom: 24),
               children: [
                 Container(
-                  color: AppColors.primaryBlue,
+                  color: StreakColors.brand,
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(d.usuarioId == yo ? '${d.username} (tú)' : d.username,
-                          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800)),
+                          style: const TextStyle(color: StreakColors.text, fontSize: 18, fontWeight: FontWeight.w800)),
                       Text('${d.puntosTotales} pts',
-                          style: const TextStyle(color: AppColors.goldAccent, fontSize: 20, fontWeight: FontWeight.w900)),
+                          style: const TextStyle(color: StreakColors.accent, fontSize: 20, fontWeight: FontWeight.w900)),
                     ],
                   ),
                 ),

@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/errors/app_exception.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/streak_theme.dart';
 import '../../application/quinielas_providers.dart';
 
 /// Caracteres permitidos en el código: mayúsculas y dígitos sin 0, O, I, L (RN-27).
@@ -95,7 +95,7 @@ class _UnirseQuinielaScreenState extends ConsumerState<UnirseQuinielaScreen> {
           children: [
             const Text(
               'Pide el código de 6 caracteres al administrador de la quiniela.',
-              style: TextStyle(color: AppColors.textPrimary),
+              style: TextStyle(color: StreakColors.text),
             ),
             const SizedBox(height: 20),
             TextField(
@@ -107,7 +107,7 @@ class _UnirseQuinielaScreenState extends ConsumerState<UnirseQuinielaScreen> {
                 fontSize: 28,
                 letterSpacing: 8,
                 fontWeight: FontWeight.bold,
-                color: AppColors.primaryBlue,
+                color: StreakColors.cream,
               ),
               textAlign: TextAlign.center,
               decoration: const InputDecoration(labelText: 'Código', counterText: ''),

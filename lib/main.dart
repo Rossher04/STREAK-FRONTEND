@@ -11,7 +11,7 @@ import 'core/config/validacion_release.dart';
 import 'core/constants/api_constants.dart';
 import 'core/constants/app_constants.dart';
 import 'core/router/app_router.dart';
-import 'core/theme/app_theme.dart';
+import 'core/theme/streak_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,7 +49,8 @@ class StreakApp extends ConsumerWidget {
     return MaterialApp.router(
       title: AppConstants.appName,
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
+      theme: StreakTheme.dark(),
+      themeMode: ThemeMode.dark,
       routerConfig: router,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,

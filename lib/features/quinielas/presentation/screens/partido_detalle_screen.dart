@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/network/server_clock.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/streak_theme.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../application/quinielas_providers.dart';
 import '../../domain/quiniela_vista.dart';
@@ -59,31 +59,31 @@ class PartidoDetalleScreen extends ConsumerWidget {
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
                 Container(
-                  color: AppColors.primaryBlue,
+                  color: StreakColors.brand,
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
                       Text('${fechaLocal(p.fechaHora)} · ${textoEstado(p)}',
-                          style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                          style: const TextStyle(color: StreakColors.muted, fontSize: 12)),
                       const SizedBox(height: 8),
                       Row(
                         children: [
                           Expanded(
                             child: Text(local,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                                style: const TextStyle(color: StreakColors.text, fontWeight: FontWeight.w800, fontSize: 16)),
                           ),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Text(
                               p.estado == 'FINALIZADO' ? textoMarcador(p.resultado) : 'vs',
-                              style: const TextStyle(color: AppColors.goldAccent, fontSize: 26, fontWeight: FontWeight.w900),
+                              style: const TextStyle(color: StreakColors.accent, fontSize: 26, fontWeight: FontWeight.w900),
                             ),
                           ),
                           Expanded(
                             child: Text(visita,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                                style: const TextStyle(color: StreakColors.text, fontWeight: FontWeight.w800, fontSize: 16)),
                           ),
                         ],
                       ),
@@ -98,12 +98,12 @@ class PartidoDetalleScreen extends ConsumerWidget {
                 for (final pa in d.participantes)
                   ListTile(
                     selected: pa.usuarioId == yo,
-                    selectedTileColor: AppColors.goldAccent.withValues(alpha: 0.18),
+                    selectedTileColor: StreakColors.accent.withValues(alpha: 0.18),
                     leading: CircleAvatar(
                       radius: 16,
-                      backgroundColor: AppColors.creamBackground,
+                      backgroundColor: StreakColors.surface2,
                       child: Text(pa.username.isEmpty ? '?' : pa.username[0].toUpperCase(),
-                          style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold)),
+                          style: const TextStyle(color: StreakColors.cream, fontWeight: FontWeight.bold)),
                     ),
                     title: Text(pa.usuarioId == yo ? '${pa.username} (tú)' : pa.username,
                         style: const TextStyle(fontWeight: FontWeight.w700)),

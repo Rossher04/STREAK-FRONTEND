@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/errors/app_exception.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/streak_theme.dart';
 import '../../../../core/utils/password_rules.dart';
 import '../../application/auth_controller.dart';
 
@@ -71,7 +71,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
               children: [
                 const Text(
                   'El usuario no se podrá cambiar después (RN-09).',
-                  style: TextStyle(color: AppColors.textPrimary),
+                  style: TextStyle(color: StreakColors.text),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(

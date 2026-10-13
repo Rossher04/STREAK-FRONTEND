@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/app_exception.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/streak_theme.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../application/quinielas_providers.dart';
 import '../../domain/models.dart';
@@ -97,7 +97,7 @@ class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
                   e is AppException
                       ? e.mensaje
                       : 'No se pudieron cargar los torneos.',
-                  style: const TextStyle(color: AppColors.error),
+                  style: const TextStyle(color: StreakColors.orangeText),
                 ),
                 TextButton(
                   onPressed: () => ref.invalidate(torneosProvider),
@@ -112,7 +112,7 @@ class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
                   child: Text(
                     'No hay torneos activos por ahora. Vuelve a intentarlo más tarde.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textPrimary),
+                    style: TextStyle(color: StreakColors.text),
                   ),
                 );
               }
@@ -149,7 +149,7 @@ class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
                     const Text(
                       'En eliminatoria solo cuenta el tiempo reglamentario (90\'). Prórroga y penales no puntúan (RN-23).',
                       style:
-                          TextStyle(color: AppColors.textPrimary, fontSize: 12),
+                          TextStyle(color: StreakColors.text, fontSize: 12),
                     ),
                   const SizedBox(height: 16),
                   Semantics(

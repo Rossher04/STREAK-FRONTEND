@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/streak_theme.dart';
 import '../../domain/quiniela_vista.dart';
 import 'quiniela_widgets.dart';
 
@@ -38,7 +38,7 @@ class TabTabla extends StatelessWidget {
                 final yo = f.usuarioId == usuarioId;
                 return ListTile(
                   selected: yo,
-                  selectedTileColor: AppColors.goldAccent.withValues(alpha: 0.18),
+                  selectedTileColor: StreakColors.accent.withValues(alpha: 0.18),
                   leading: SizedBox(
                     width: 64,
                     child: Row(
@@ -54,10 +54,10 @@ class TabTabla extends StatelessWidget {
                           // La inicial es decorativa: el nombre ya se lee en el título.
                           child: CircleAvatar(
                             radius: 16,
-                            backgroundColor: AppColors.creamBackground,
+                            backgroundColor: StreakColors.surface2,
                             child: Text(
                               f.username.isEmpty ? '?' : f.username[0].toUpperCase(),
-                              style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.bold),
+                              style: const TextStyle(color: StreakColors.cream, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),

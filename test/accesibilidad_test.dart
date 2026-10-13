@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:streak_mobile/core/network/server_clock.dart';
-import 'package:streak_mobile/core/theme/app_colors.dart';
+import 'package:streak_mobile/core/theme/streak_theme.dart';
 import 'package:streak_mobile/features/pro/application/pago_pro_controller.dart';
 import 'package:streak_mobile/features/pro/presentation/paywall_contenido.dart';
 import 'package:streak_mobile/features/quinielas/domain/quiniela_vista.dart';
@@ -55,44 +55,46 @@ QuinielaVista _vista() => QuinielaVista.fromRaw({
 void main() {
   setUpAll(() => initializeDateFormatting('es'));
 
-  group('contraste de la paleta (WCAG AA = 4.5:1 en texto normal)', () {
-    const blanco = Colors.white;
-    test('el texto principal sobre los fondos de la app', () {
-      for (final fondo in [blanco, AppColors.lightGraySurface, AppColors.creamBackground]) {
-        expect(contraste(AppColors.textPrimary, fondo), greaterThan(4.5));
+  group('contraste de la paleta oscura (WCAG AA = 4.5:1 en texto normal)', () {
+    const fondos = [StreakColors.bg, StreakColors.surface1];
+    test('texto, crema, secundario, amarillo y orangeText sirven como texto sobre bg y surface1', () {
+      for (final fondo in fondos) {
+        for (final c in [StreakColors.text, StreakColors.cream, StreakColors.muted, StreakColors.accent, StreakColors.orangeText]) {
+          expect(contraste(c, fondo), greaterThan(4.5), reason: '$c sobre $fondo');
+        }
       }
     });
-    test('blanco y dorado sobre el azul de las cabeceras', () {
-      expect(contraste(Colors.white, AppColors.primaryBlue), greaterThan(4.5));
-      expect(contraste(AppColors.goldAccent, AppColors.primaryBlue), greaterThan(4.5));
+    test('los valores de PALETA.md: texto 15.8, crema 15.3, secundario 8.3, amarillo 9.8, orangeText 5.8', () {
+      expect(contraste(StreakColors.text, StreakColors.bg), closeTo(15.8, 0.1));
+      expect(contraste(StreakColors.cream, StreakColors.bg), closeTo(15.3, 0.1));
+      expect(contraste(StreakColors.muted, StreakColors.bg), closeTo(8.3, 0.1));
+      expect(contraste(StreakColors.accent, StreakColors.bg), closeTo(9.8, 0.1));
+      expect(contraste(StreakColors.orangeText, StreakColors.bg), closeTo(5.8, 0.1));
     });
-    test('el azul principal sobre blanco y crema', () {
-      expect(contraste(AppColors.primaryBlue, blanco), greaterThan(4.5));
-      expect(contraste(AppColors.primaryBlue, AppColors.creamBackground), greaterThan(4.5));
+    test('texto sobre botón amarillo y texto en surface2 (chips)', () {
+      expect(contraste(StreakColors.accentInk, StreakColors.accent), greaterThan(4.5));
+      expect(contraste(StreakColors.text, StreakColors.surface2), greaterThan(4.5));
+      expect(contraste(StreakColors.muted, StreakColors.surface2), greaterThan(4.5));
+      expect(contraste(StreakColors.text, StreakColors.brand), greaterThan(4.5), reason: 'iniciales del avatar');
     });
-    test('el error sobre blanco y gris', () {
-      expect(contraste(AppColors.error, blanco), greaterThan(4.5));
-      expect(contraste(AppColors.error, AppColors.lightGraySurface), greaterThan(4.5));
-    });
-    test('documenta lo que NO sirve como texto: textSecondary, dorado y naranja sobre claro', () {
-      expect(contraste(AppColors.textSecondary, blanco), lessThan(4.5));
-      expect(contraste(AppColors.goldAccent, blanco), lessThan(3));
-      expect(contraste(AppColors.sportsOrange, AppColors.lightGraySurface), lessThan(4.5));
+    test('documenta lo que NO sirve como texto pequeño: orange (3.99) y hint', () {
+      expect(contraste(StreakColors.orange, StreakColors.bg), lessThan(4.5));
+      expect(contraste(StreakColors.orange, StreakColors.bg), closeTo(3.99, 0.05));
     });
   });
 
-  test('guardia: textSecondary solo se usa en iconos (nunca como color de texto)', () {
+  test('guardia: StreakColors.orange nunca es color de texto (para texto pequeño se usa orangeText)', () {
     final culpables = <String>[];
     for (final f in Directory('lib').listSync(recursive: true).whereType<File>()) {
-      if (!f.path.endsWith('.dart') || f.path.endsWith('app_colors.dart')) continue;
+      if (!f.path.endsWith('.dart')) continue;
       final lineas = f.readAsLinesSync();
       for (var i = 0; i < lineas.length; i++) {
-        if (lineas[i].contains('AppColors.textSecondary') && !lineas[i].contains('Icon(')) {
-          culpables.add('${f.path}:${i + 1}');
-        }
+        final l = lineas[i];
+        if (l.contains('TextStyle(') && l.contains('StreakColors.orange,')) culpables.add('${f.path}:${i + 1}');
+        if (l.contains('copyWith(color: StreakColors.orange)')) culpables.add('${f.path}:${i + 1}');
       }
     }
-    expect(culpables, isEmpty, reason: 'contraste 4.0:1 sobre blanco; usar textPrimary');
+    expect(culpables, isEmpty);
   });
 
   group('guías de accesibilidad de Flutter', () {
@@ -102,7 +104,7 @@ void main() {
       addTearDown(tester.view.reset);
       await tester.pumpWidget(ProviderScope(
         overrides: [serverClockProvider.overrideWithValue(ServerClock(reloj: () => _ahora))],
-        child: MaterialApp(home: Scaffold(body: hijo)),
+        child: MaterialApp(theme: StreakTheme.dark(), home: Scaffold(body: hijo)),
       ));
       await tester.pump();
     }

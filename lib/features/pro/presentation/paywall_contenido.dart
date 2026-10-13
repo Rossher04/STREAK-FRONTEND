@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/streak_theme.dart';
 import '../../../core/widgets/icono_pro.dart';
 import '../application/pago_pro_controller.dart';
 
@@ -46,7 +46,7 @@ class PaywallContenido extends StatelessWidget {
         const SizedBox(height: 8),
         const Text('STREAK PRO',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: AppColors.primaryBlue)),
+            style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: StreakColors.cream)),
         const SizedBox(height: 16),
         const Text('USD ${AppConstants.precioProUsd}',
             key: ValueKey('precio'),
@@ -63,7 +63,7 @@ class PaywallContenido extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                const Icon(Icons.check_circle, color: StreakColors.accent, size: 20),
                 const SizedBox(width: 8),
                 Expanded(child: Text(b)),
               ],
@@ -73,21 +73,21 @@ class PaywallContenido extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: AppColors.creamBackground,
+            color: StreakColors.surface2,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.goldAccent),
+            border: Border.all(color: StreakColors.accent),
           ),
           child: const Text(textoSinVentaja, key: ValueKey('sin-ventaja')),
         ),
         const SizedBox(height: 12),
         const Text(textoComoCancelar,
-            key: ValueKey('cancelar'), style: TextStyle(color: AppColors.textPrimary, fontSize: 13)),
+            key: ValueKey('cancelar'), style: TextStyle(color: StreakColors.text, fontSize: 13)),
         const SizedBox(height: 20),
         if (motivoNoDisponible != null)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Text(motivoNoDisponible!,
-                textAlign: TextAlign.center, style: const TextStyle(color: AppColors.error)),
+                textAlign: TextAlign.center, style: const TextStyle(color: StreakColors.orangeText)),
           ),
         if (estado.mensaje != null)
           Padding(
@@ -97,7 +97,7 @@ class PaywallContenido extends StatelessWidget {
               key: const ValueKey('mensaje-pago'),
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: estado.fase == FasePago.error ? AppColors.error : AppColors.primaryBlue,
+                color: estado.fase == FasePago.error ? StreakColors.orangeText : StreakColors.cream,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -118,7 +118,7 @@ class PaywallContenido extends StatelessWidget {
         const Text(
           'El pago lo procesa Stripe: los datos de tu tarjeta nunca pasan por STREAK.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: AppColors.textPrimary, fontSize: 12),
+          style: TextStyle(color: StreakColors.text, fontSize: 12),
         ),
       ],
     );

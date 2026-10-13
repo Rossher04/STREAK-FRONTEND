@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/errors/app_exception.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/streak_theme.dart';
 import '../../domain/quiniela_vista.dart';
 import '../../domain/reglas.dart';
+
+export '../../../../core/widgets/estructura.dart' show BannerAviso;
 
 /// Fecha y hora local (RN-70: el backend envía UTC).
 String fechaLocal(DateTime utc) => DateFormat("EEE d MMM · HH:mm", 'es').format(utc.toLocal());
@@ -36,7 +38,7 @@ class EncabezadoFase extends StatelessWidget {
       child: Text(
         (fase?.nombre ?? 'Partidos').toUpperCase(),
         style: const TextStyle(
-          color: AppColors.primaryBlue,
+          color: StreakColors.cream,
           fontWeight: FontWeight.w800,
           letterSpacing: 1,
           fontSize: 12,
@@ -63,12 +65,12 @@ class ErrorReintentar extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(sinRed ? Icons.wifi_off : Icons.error_outline, size: 56, color: AppColors.textSecondary),
+            Icon(sinRed ? Icons.wifi_off : Icons.error_outline, size: 56, color: StreakColors.muted),
             const SizedBox(height: 16),
             Text(
               error is AppException ? (error as AppException).mensaje : 'No se pudo cargar la información.',
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textPrimary),
+              style: const TextStyle(color: StreakColors.text),
             ),
             const SizedBox(height: 16),
             ElevatedButton(onPressed: onRetry, child: const Text('REINTENTAR')),
@@ -93,39 +95,10 @@ class ListaVacia extends StatelessWidget {
       padding: const EdgeInsets.all(32),
       children: [
         const SizedBox(height: 60),
-        Icon(icono, size: 56, color: AppColors.textSecondary),
+        Icon(icono, size: 56, color: StreakColors.muted),
         const SizedBox(height: 16),
-        Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textPrimary)),
+        Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: StreakColors.text)),
       ],
-    );
-  }
-}
-
-class BannerAviso extends StatelessWidget {
-  const BannerAviso({super.key, required this.icono, required this.texto, this.color = AppColors.warning});
-
-  final IconData icono;
-  final String texto;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      color: color.withValues(alpha: 0.15),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        children: [
-          Icon(icono, size: 18, color: AppColors.textPrimary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              texto,
-              style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -140,12 +113,12 @@ class EtiquetaPuntosChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final noCuenta = partido.estado == 'SUSPENDIDO' || partido.estado == 'CANCELADO';
     final color = noCuenta || partido.pronostico == null
-        ? AppColors.textPrimary
+        ? StreakColors.text
         : switch (partido.puntos) {
-            5 => AppColors.success,
-            4 => AppColors.primaryBlue,
-            3 => AppColors.sportsOrange,
-            _ => AppColors.error,
+            5 => StreakColors.accent,
+            4 => StreakColors.brand,
+            3 => StreakColors.orange,
+            _ => StreakColors.orangeText,
           };
     final texto = etiquetaPuntos(
       estado: partido.estado,
@@ -159,7 +132,7 @@ class EtiquetaPuntosChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color),
       ),
-      child: Text(texto, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 12)),
+      child: Text(texto, style: const TextStyle(color: StreakColors.text, fontWeight: FontWeight.w700, fontSize: 12)),
     );
   }
 }

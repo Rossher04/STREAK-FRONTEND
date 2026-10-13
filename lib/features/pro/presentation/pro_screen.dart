@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/errors/app_exception.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/streak_theme.dart';
 import '../../../core/widgets/icono_pro.dart';
 import '../../auth/application/auth_controller.dart';
 import '../application/pago_pro_controller.dart';
@@ -54,7 +54,7 @@ class _TuPlanPro extends ConsumerWidget {
           const SizedBox(height: 8),
           Text(recienActivado ? '¡PRO activado!' : 'Tu plan PRO está activo',
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.primaryBlue)),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: StreakColors.cream)),
           const SizedBox(height: 8),
           const Text(textoPagoUnico, textAlign: TextAlign.center),
           const SizedBox(height: 16),
@@ -62,13 +62,13 @@ class _TuPlanPro extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
               child: Row(children: [
-                const Icon(Icons.check_circle, color: AppColors.success, size: 20),
+                const Icon(Icons.check_circle, color: StreakColors.accent, size: 20),
                 const SizedBox(width: 8),
                 Expanded(child: Text(b)),
               ]),
             ),
           const SizedBox(height: 8),
-          const Text(textoSinVentaja, style: TextStyle(color: AppColors.textPrimary, fontSize: 13)),
+          const Text(textoSinVentaja, style: TextStyle(color: StreakColors.text, fontSize: 13)),
           const SizedBox(height: 24),
           Text('Historial de pagos', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
@@ -82,11 +82,11 @@ class _TuPlanPro extends ConsumerWidget {
               TextButton(onPressed: () => ref.invalidate(pagosProProvider), child: const Text('Reintentar')),
             ]),
             data: (lista) => lista.isEmpty
-                ? const Text('Aún no hay pagos registrados.', style: TextStyle(color: AppColors.textPrimary))
+                ? const Text('Aún no hay pagos registrados.', style: TextStyle(color: StreakColors.text))
                 : Column(children: [for (final p in lista) _FilaPago(p)]),
           ),
           const SizedBox(height: 16),
-          const Text(textoComoCancelar, style: TextStyle(color: AppColors.textPrimary, fontSize: 13)),
+          const Text(textoComoCancelar, style: TextStyle(color: StreakColors.text, fontSize: 13)),
         ],
       ),
     );

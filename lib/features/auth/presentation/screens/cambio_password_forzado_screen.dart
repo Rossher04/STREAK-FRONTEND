@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/errors/app_exception.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/streak_theme.dart';
 import '../../../../core/utils/password_rules.dart';
 import '../../application/auth_controller.dart';
 
 class CambioPasswordForzadoScreen extends ConsumerStatefulWidget {
-  const CambioPasswordForzadoScreen({super.key});
+  const CambioPasswordForzadoScreen({super.key, this.temporal = true});
+
+  /// true: contraseña temporal (RN-07), sin flecha atrás. false: cambio voluntario desde el panel lateral.
+  final bool temporal;
 
   @override
   ConsumerState<CambioPasswordForzadoScreen> createState() =>
@@ -60,12 +63,12 @@ class _CambioPasswordForzadoScreenState
             key: _formKey,
             child: Column(
               children: [
-                const Icon(Icons.security, size: 56, color: AppColors.error),
+                const Icon(Icons.security, size: 56, color: StreakColors.orangeText),
                 const SizedBox(height: 12),
                 const Text(
                   'Debes cambiar la contraseña temporal antes de cualquier otra operación (RN-07). Doble confirmación obligatoria.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textPrimary),
+                  style: TextStyle(color: StreakColors.text),
                 ),
                 const SizedBox(height: 24),
                 TextFormField(

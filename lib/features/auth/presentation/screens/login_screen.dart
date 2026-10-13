@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/network/actividad_red.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/streak_theme.dart';
 import '../../application/auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -62,10 +62,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       width: 72,
                       height: 72,
                       decoration: const BoxDecoration(
-                        color: AppColors.primaryBlue,
+                        color: StreakColors.brand,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.sports_soccer, size: 40, color: Colors.white),
+                      child: const Icon(Icons.sports_soccer, size: 40, color: StreakColors.text),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -75,14 +75,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w900,
-                      color: AppColors.primaryBlue,
+                      color: StreakColors.brand,
                       letterSpacing: 2,
                     ),
                   ),
                   const Text(
                     AppConstants.appTagline,
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textPrimary, fontSize: 14),
+                    style: TextStyle(color: StreakColors.text, fontSize: 14),
                   ),
                   const SizedBox(height: 28),
                   const AvisoServidorLento(),
@@ -90,7 +90,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Text(
                       ref.watch(authControllerProvider).message!,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: AppColors.primaryBlue, fontWeight: FontWeight.w600),
+                      style: const TextStyle(color: StreakColors.brand, fontWeight: FontWeight.w600),
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -98,7 +98,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _usernameController,
                     decoration: const InputDecoration(
                       labelText: 'Usuario',
-                      prefixIcon: Icon(Icons.person_outline, color: AppColors.primaryBlue),
+                      prefixIcon: Icon(Icons.person_outline, color: StreakColors.brand),
                     ),
                     validator: (val) =>
                         (val == null || val.trim().isEmpty) ? 'Ingresa tu usuario' : null,
@@ -109,7 +109,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       labelText: 'Contraseña',
-                      prefixIcon: const Icon(Icons.lock_outline, color: AppColors.primaryBlue),
+                      prefixIcon: const Icon(Icons.lock_outline, color: StreakColors.brand),
                       suffixIcon: IconButton(
                       tooltip: _obscurePassword ? 'Mostrar contraseña' : 'Ocultar contraseña',
                         icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
@@ -133,7 +133,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: StreakColors.text),
                           )
                         : const Text('INICIAR SESIÓN'),
                   ),
@@ -147,7 +147,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: const Text(
                           'Regístrate aquí',
                           style: TextStyle(
-                            color: AppColors.primaryBlue,
+                            color: StreakColors.brand,
                             fontWeight: FontWeight.bold,
                             decoration: TextDecoration.underline,
                           ),

@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/network/server_clock.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/streak_theme.dart';
 import '../../application/quinielas_providers.dart';
 import '../../domain/quiniela_vista.dart';
 import '../../domain/reglas.dart';
@@ -144,7 +144,7 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
                 fechaLocal(p.fechaHora),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                    color: AppColors.textPrimary, fontSize: 12),
+                    color: StreakColors.text, fontSize: 12),
               ),
               const SizedBox(height: 8),
               if (editable)
@@ -207,8 +207,8 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: cuenta != null
-                      ? AppColors.primaryBlue
-                      : AppColors.textPrimary,
+                      ? StreakColors.cream
+                      : StreakColors.text,
                   fontWeight:
                       cuenta != null ? FontWeight.w700 : FontWeight.normal,
                   fontSize: 12,
@@ -219,7 +219,7 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
                 const Text(
                   avisoNoventa,
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textPrimary, fontSize: 12),
+                  style: TextStyle(color: StreakColors.text, fontSize: 12),
                 ),
               ],
               if (!editable) ...[
@@ -238,7 +238,7 @@ class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
                     'Sin conexión: no se puede guardar',
                     textAlign: TextAlign.center,
                     style:
-                        TextStyle(color: AppColors.textPrimary, fontSize: 12),
+                        TextStyle(color: StreakColors.text, fontSize: 12),
                   )
                 else
                   ElevatedButton(

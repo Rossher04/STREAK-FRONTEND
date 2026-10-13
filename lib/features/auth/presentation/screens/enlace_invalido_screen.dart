@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/streak_theme.dart';
 
 /// Se muestra cuando un enlace de recuperación llega sin uid o sin token.
 class EnlaceInvalidoScreen extends StatelessWidget {
@@ -16,7 +16,7 @@ class EnlaceInvalidoScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.link_off, size: 64, color: AppColors.error),
+              const Icon(Icons.link_off, size: 64, color: StreakColors.orangeText),
               const SizedBox(height: 16),
               const Text('Enlace inválido', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: 8),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/errors/app_exception.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/streak_theme.dart';
 import '../../../../core/utils/password_rules.dart';
 import '../../application/auth_controller.dart';
 
@@ -65,12 +65,12 @@ class _RestablecerPasswordScreenState extends ConsumerState<RestablecerPasswordS
             key: _formKey,
             child: Column(
               children: [
-                const Icon(Icons.lock_reset, size: 56, color: AppColors.primaryBlue),
+                const Icon(Icons.lock_reset, size: 56, color: StreakColors.brand),
                 const SizedBox(height: 12),
                 const Text(
                   'Elige tu nueva contraseña. Después iniciarás sesión con ella.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textPrimary),
+                  style: TextStyle(color: StreakColors.text),
                 ),
                 const SizedBox(height: 24),
                 TextFormField(
@@ -88,7 +88,7 @@ class _RestablecerPasswordScreenState extends ConsumerState<RestablecerPasswordS
                 ),
                 if (_error != null) ...[
                   const SizedBox(height: 16),
-                  Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.error)),
+                  Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: StreakColors.orangeText)),
                   TextButton(
                     onPressed: () => context.go('/recuperar'),
                     child: const Text('Pedir un enlace nuevo'),

@@ -23,7 +23,6 @@ dependencies:
 
   # UI, Fechas & Utilidades
   intl: ^0.20.2
-  google_fonts: ^6.2.1
   flutter_svg: ^2.0.10+1
   cached_network_image: ^3.3.1
   share_plus: ^9.0.0
@@ -44,6 +43,25 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/logo/
+  # Tipografía del diseño (licencias OFL en LICENSES/). Se empaquetan: nada se descarga en ejecución.
+  fonts:
+    - family: Sora
+      fonts:
+        - asset: assets/fonts/Sora-400.ttf
+          weight: 400
+        - asset: assets/fonts/Sora-600.ttf
+          weight: 600
+        - asset: assets/fonts/Sora-700.ttf
+          weight: 700
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.otf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.otf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.otf
+          weight: 600
 
 # Ícono de la app (assets/icons/icon.png se genera con tools/generar_icono.py).
 flutter_launcher_icons:
