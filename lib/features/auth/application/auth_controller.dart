@@ -47,7 +47,7 @@ class AuthController extends Notifier<AuthSession> {
     );
   }
 
-  /// Llamado por el interceptor ante un 403 ACCESO_DENEGADO por contraseña temporal (RN-07).
+  /// Llamado por el interceptor ante un 403 PASSWORD_TEMPORAL (RN-07).
   void forzarCambioPassword() {
     if (state.status == AuthStatus.needsPasswordChange) return;
     state = AuthSession(

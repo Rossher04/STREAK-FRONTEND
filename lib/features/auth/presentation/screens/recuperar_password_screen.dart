@@ -1,100 +1,93 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/streak_theme.dart';
+import '../../../../core/widgets/botones.dart';
+import '../../../../core/widgets/campo_texto.dart';
+import '../../../../core/widgets/estructura.dart';
+import '../../../../core/widgets/streak_icon.dart';
 import '../../application/auth_controller.dart';
+import 'registro_screen.dart' show validarCorreo;
 
+/// Pantalla 03 · Recuperar contraseña (el texto vive en [AppConstants.textoRecuperarPassword]).
 class RecuperarPasswordScreen extends ConsumerStatefulWidget {
   const RecuperarPasswordScreen({super.key});
 
   @override
-  ConsumerState<RecuperarPasswordScreen> createState() =>
-      _RecuperarPasswordScreenState();
+  ConsumerState<RecuperarPasswordScreen> createState() => _RecuperarPasswordScreenState();
 }
 
 class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScreen> {
-  final _email = TextEditingController();
+  final _correo = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _loading = false;
-  String? _mensaje; // respuesta del backend tras enviar
+  bool _cargando = false;
+  bool _enviado = false;
+  AppException? _error;
 
   @override
   void dispose() {
-    _email.dispose();
+    _correo.dispose();
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  Future<void> _enviar() async {
+    setState(() => _error = null);
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _loading = true);
+    setState(() => _cargando = true);
     try {
-      final mensaje = await ref.read(authControllerProvider.notifier).recuperar(_email.text);
-      if (mounted) setState(() => _mensaje = mensaje);
+      await ref.read(authControllerProvider.notifier).recuperar(_correo.text);
+      if (mounted) setState(() => _enviado = true);
     } on AppException catch (e) {
-      if (mounted) {
-        final sinCorreo = e.codigo == 'CORREO_NO_CONFIGURADO';
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(sinCorreo
-              ? '${e.mensaje} El envío de correos aún no está configurado en el servidor; inténtalo más tarde.'
-              : e.mensaje),
-        ));
-      }
+      if (mounted) setState(() => _error = e);
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _cargando = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final e = _error;
+    final mensajeGeneral = e == null || e.campo('email') != null
+        ? null
+        : e.codigo == 'CORREO_NO_CONFIGURADO'
+            ? 'La recuperación por correo no está disponible por ahora. Inténtalo más tarde.'
+            : e.mensaje;
     return Scaffold(
       appBar: AppBar(title: const Text('Recuperar contraseña')),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: _mensaje != null
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.mark_email_read_outlined, size: 64, color: StreakColors.orange),
-                  const SizedBox(height: 16),
-                  Text(_mensaje!, textAlign: TextAlign.center),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Abre el enlace del correo (vale una hora) para elegir una contraseña nueva.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: StreakColors.text),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(StreakSize.screenPadding, 12, StreakSize.screenPadding, 24),
+          children: _enviado
+              ? [
+                  const BannerAviso(texto: AppConstants.textoRecuperarEnviado, icono: StreakIcons.mail, neutro: true),
+                  const SizedBox(height: 24),
+                  BotonPrimario(texto: 'Volver a iniciar sesión', onPressed: () => context.go('/login')),
+                ]
+              : [
+                  Text(AppConstants.textoRecuperarPassword, style: StreakText.secundario),
+                  const SizedBox(height: 22),
+                  if (mensajeGeneral != null) ...[BannerAviso(texto: mensajeGeneral), const SizedBox(height: 16)],
+                  Form(
+                    key: _formKey,
+                    child: CampoTexto(
+                      etiqueta: 'Correo electrónico',
+                      hint: 'nombre@correo.com',
+                      controller: _correo,
+                      keyboardType: TextInputType.emailAddress,
+                      autofillHints: const [AutofillHints.email],
+                      errorServidor: e?.campo('email'),
+                      validator: (v) =>
+                          validarCorreo(v) == null ? null : 'Escribe un correo válido, por ejemplo nombre@correo.com',
+                      onSubmitted: (_) => _enviar(),
+                    ),
                   ),
                   const SizedBox(height: 24),
-                  ElevatedButton(
-                    onPressed: () => context.go('/login'),
-                    child: const Text('VOLVER AL LOGIN'),
-                  ),
+                  BotonPrimario(texto: 'Enviar instrucciones', cargando: _cargando, onPressed: _enviar),
                 ],
-              )
-            : Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    const Text(
-                      'Ingresa el correo con el que te registraste.',
-                      style: TextStyle(color: StreakColors.text),
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _email,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(labelText: 'Correo'),
-                      validator: (v) =>
-                          (v == null || !v.contains('@')) ? 'Correo inválido' : null,
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: _loading ? null : _submit,
-                      child: Text(_loading ? 'ENVIANDO…' : 'ENVIAR INSTRUCCIONES'),
-                    ),
-                  ],
-                ),
-              ),
+        ),
       ),
     );
   }

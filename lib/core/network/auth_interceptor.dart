@@ -4,6 +4,9 @@ import '../constants/api_constants.dart';
 
 /// Adjunta el JWT, renueva el access token ante un 401 y detecta la
 /// contraseña temporal (RN-07).
+/// Código del 403 que el backend usa cuando la contraseña es temporal (RN-07).
+const codigoPasswordTemporal = 'PASSWORD_TEMPORAL';
+
 class AuthInterceptor extends QueuedInterceptor {
   AuthInterceptor(
     Dio dio,
@@ -43,11 +46,9 @@ class AuthInterceptor extends QueuedInterceptor {
     final status = err.response?.statusCode;
     final path = err.requestOptions.path;
 
-    // TODO: hoy el backend solo responde 403 ACCESO_DENEGADO por contraseña temporal; cuando
-    // exponga un código específico (p. ej. PASSWORD_TEMPORAL) hay que usarlo aquí en vez de este genérico.
-    // RN-07: con contraseña temporal el backend responde 403 ACCESO_DENEGADO a toda ruta
-    // protegida (IsPasswordNotTemporal). El resto de accesos indebidos responden 404.
-    if (status == 403 && !_esPublica(path) && _codigoError(err.response?.data) == 'ACCESO_DENEGADO') {
+    // RN-07: con contraseña temporal el backend responde 403 con el código específico PASSWORD_TEMPORAL
+    // (permissions.py, commit 91ebd2a). Cualquier otro 403 es un acceso denegado normal y se propaga tal cual.
+    if (status == 403 && !_esPublica(path) && _codigoError(err.response?.data) == codigoPasswordTemporal) {
       await _storage.setPassTemporal(true);
       onForcePasswordChange?.call();
       return handler.next(err);

@@ -44,6 +44,15 @@ void main() {
   test('contraseña temporal: cambio forzado y re-login automático (RN-07)', () async {
     await app.auth.login('caro', 'Temporal123');
     expect(app.sesion.status, AuthStatus.needsPasswordChange);
+    // /usuarios/me/ ya se puede leer con contraseña temporal: perfil real con su id y el flag.
+    expect(app.sesion.user?.id, greaterThan(0));
+    expect(app.sesion.user?.passTemporal, isTrue);
+    // El resto de la API responde 403 con el código específico PASSWORD_TEMPORAL.
+    await expectLater(
+      app.repo.mias(),
+      throwsA(isA<AppException>().having((e) => e.codigo, 'codigo', 'PASSWORD_TEMPORAL')),
+    );
+    expect(app.sesion.status, AuthStatus.needsPasswordChange);
     final tokenViejo = app.storage.datos['access'];
 
     await app.auth.cambiarPassword(oldPassword: 'Temporal123', newPassword: 'Nueva12345');
@@ -79,7 +88,9 @@ void main() {
         firstName: 'A',
         lastName: 'B',
       ),
-      throwsA(isA<AppException>().having((e) => e.mensaje, 'mensaje', startsWith('Usuario: '))),
+      throwsA(isA<AppException>()
+          .having((e) => e.mensaje, 'mensaje', startsWith('Usuario: '))
+          .having((e) => e.campo('username'), 'campo username', isNotNull)),
     );
   });
 

@@ -77,7 +77,7 @@ void main() {
       r.go('streak://reset-password?uid=MQ');
       await tester.pumpAndSettle();
       expect(find.byType(EnlaceInvalidoScreen), findsOneWidget);
-      expect(find.text('Enlace inválido'), findsWidgets);
+      expect(find.text('Enlace inválido o vencido'), findsWidgets);
     });
 
     testWidgets('un enlace sin uid muestra "Enlace inválido"', (tester) async {

@@ -1,36 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/streak_theme.dart';
 
-/// Se muestra cuando un enlace de recuperación llega sin uid o sin token.
+import '../../../../core/theme/streak_theme.dart';
+import '../../../../core/widgets/botones.dart';
+import '../../../../core/widgets/streak_icon.dart';
+
+/// Pantalla 05 · Enlace inválido o vencido: faltan uid o token, o el backend rechazó el token.
 class EnlaceInvalidoScreen extends StatelessWidget {
   const EnlaceInvalidoScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Enlace inválido')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.link_off, size: 64, color: StreakColors.orangeText),
-              const SizedBox(height: 16),
-              const Text('Enlace inválido', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 8),
-              const Text(
-                'El enlace de recuperación está incompleto. Pide uno nuevo desde "¿Olvidaste tu contraseña?".',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => context.go('/recuperar'),
-                child: const Text('PEDIR UN ENLACE NUEVO'),
-              ),
-              TextButton(onPressed: () => context.go('/login'), child: const Text('Volver al inicio de sesión')),
-            ],
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(StreakSize.screenPadding),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Center(child: StreakIcon(StreakIcons.alert, size: 52, color: StreakColors.orangeText)),
+                const SizedBox(height: 24),
+                Semantics(
+                  header: true,
+                  child: Text('Enlace inválido o vencido', textAlign: TextAlign.center, style: StreakText.tituloGrande),
+                ),
+                const SizedBox(height: 12),
+                Text('Pide un enlace nuevo para recuperar tu contraseña.',
+                    textAlign: TextAlign.center, style: StreakText.secundario),
+                const SizedBox(height: 32),
+                BotonPrimario(texto: 'Pedir un enlace nuevo', onPressed: () => context.go('/recuperar')),
+                const SizedBox(height: 12),
+                BotonSecundario(texto: 'Volver a iniciar sesión', onPressed: () => context.go('/login')),
+              ],
+            ),
           ),
         ),
       ),

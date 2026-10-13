@@ -6,10 +6,18 @@ class AppException implements Exception {
   final String codigo;
   final String mensaje;
 
+  /// Errores por campo de `detalles` (RN-72): nombre del campo de la API → primer mensaje, sin prefijo.
+  /// Las pantallas los muestran bajo su campo (`CampoTexto.errorServidor`).
+  final Map<String, String> campos;
+
   const AppException({
     required this.codigo,
     required this.mensaje,
+    this.campos = const {},
   });
+
+  /// Error por campo de la API para [campo] (p. ej. 'username'), o null.
+  String? campo(String campo) => campos[campo];
 
   @override
   String toString() => 'AppException(codigo: $codigo, mensaje: $mensaje)';
@@ -55,7 +63,7 @@ class AppException implements Exception {
       // Errores por campo: se muestra el primero con su nombre en español.
       final detalle = _primerDetalle(errorObj['detalles']);
       if (detalle != null) mensaje = detalle;
-      return AppException(codigo: codigo, mensaje: mensaje);
+      return AppException(codigo: codigo, mensaje: mensaje, campos: _porCampo(errorObj['detalles']));
     }
 
     return AppException(
@@ -83,6 +91,16 @@ class AppException implements Exception {
       }
     }
     return null;
+  }
+
+  static Map<String, String> _porCampo(dynamic detalles) {
+    if (detalles is! Map) return const {};
+    final r = <String, String>{};
+    for (final e in detalles.entries) {
+      final m = _primerDetalle(e.value);
+      if (m != null) r[e.key.toString()] = m;
+    }
+    return r;
   }
 
   static const _nombresCampo = {

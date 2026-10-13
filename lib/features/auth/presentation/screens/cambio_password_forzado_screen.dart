@@ -1,105 +1,122 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/streak_theme.dart';
 import '../../../../core/utils/password_rules.dart';
+import '../../../../core/widgets/botones.dart';
+import '../../../../core/widgets/campo_texto.dart';
+import '../../../../core/widgets/estructura.dart';
 import '../../application/auth_controller.dart';
+import 'registro_screen.dart' show ayudaPassword;
 
+/// Pantalla 06 · Cambiar contraseña.
+/// - [temporal] = true (RN-07): obligatoria, sin flecha atrás ni barra, con el aviso naranja; bloquea hasta completar.
+/// - [temporal] = false: cambio voluntario desde el panel lateral (misma pantalla, sin el aviso).
+/// Tras cambiarla el backend invalida los tokens y la app vuelve a iniciar sesión sola.
 class CambioPasswordForzadoScreen extends ConsumerStatefulWidget {
   const CambioPasswordForzadoScreen({super.key, this.temporal = true});
 
-  /// true: contraseña temporal (RN-07), sin flecha atrás. false: cambio voluntario desde el panel lateral.
   final bool temporal;
 
   @override
-  ConsumerState<CambioPasswordForzadoScreen> createState() =>
-      _CambioPasswordForzadoScreenState();
+  ConsumerState<CambioPasswordForzadoScreen> createState() => _CambioPasswordForzadoScreenState();
 }
 
-class _CambioPasswordForzadoScreenState
-    extends ConsumerState<CambioPasswordForzadoScreen> {
+class _CambioPasswordForzadoScreenState extends ConsumerState<CambioPasswordForzadoScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _old = TextEditingController();
-  final _nuevo = TextEditingController();
-  final _confirm = TextEditingController();
-  bool _loading = false;
+  final _actual = TextEditingController();
+  final _nueva = TextEditingController();
+  final _confirmar = TextEditingController();
+  bool _cargando = false;
+  AppException? _error;
 
   @override
   void dispose() {
-    _old.dispose();
-    _nuevo.dispose();
-    _confirm.dispose();
+    _actual.dispose();
+    _nueva.dispose();
+    _confirmar.dispose();
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  Future<void> _cambiar() async {
+    setState(() => _error = null);
     if (!_formKey.currentState!.validate()) return;
-    setState(() => _loading = true);
+    setState(() => _cargando = true);
     try {
       await ref.read(authControllerProvider.notifier).cambiarPassword(
-            oldPassword: _old.text,
-            newPassword: _nuevo.text,
+            oldPassword: _actual.text,
+            newPassword: _nueva.text,
           );
-    } on AppException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.mensaje)));
+      if (mounted && !widget.temporal) {
+        avisar(context, 'Contraseña actualizada.');
+        if (Navigator.of(context).canPop()) Navigator.of(context).pop();
       }
+    } on AppException catch (e) {
+      if (mounted) setState(() => _error = e);
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _cargando = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Actualización requerida'),
-        automaticallyImplyLeading: false,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                const Icon(Icons.security, size: 56, color: StreakColors.orangeText),
-                const SizedBox(height: 12),
-                const Text(
-                  'Debes cambiar la contraseña temporal antes de cualquier otra operación (RN-07). Doble confirmación obligatoria.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: StreakColors.text),
-                ),
-                const SizedBox(height: 24),
-                TextFormField(
-                  controller: _old,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Contraseña actual (temporal)'),
-                  validator: (v) => (v == null || v.isEmpty) ? 'Requerida' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _nuevo,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Nueva contraseña'),
-                  validator: PasswordRules.validate,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _confirm,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Confirmar nueva contraseña'),
-                  validator: (v) => v != _nuevo.text ? 'Las contraseñas no coinciden' : null,
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _loading ? null : _submit,
-                  child: Text(_loading ? 'GUARDANDO…' : 'ACTUALIZAR CONTRASEÑA'),
-                ),
-              ],
+    final e = _error;
+    final errActual = e?.campo('old_password');
+    final errNueva = e?.campo('new_password');
+    final general = e != null && errActual == null && errNueva == null ? e.mensaje : null;
+    final contenido = Form(
+      key: _formKey,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(StreakSize.screenPadding, 12, StreakSize.screenPadding, 24),
+        children: [
+          if (widget.temporal) ...[
+            const BannerAviso(
+              key: ValueKey('aviso-temporal'),
+              texto: 'Entraste con una contraseña temporal. Debes cambiarla para continuar.',
             ),
+            const SizedBox(height: 22),
+          ],
+          if (general != null) ...[BannerAviso(texto: general), const SizedBox(height: 16)],
+          CampoTexto(
+            etiqueta: 'Contraseña actual',
+            controller: _actual,
+            contrasena: true,
+            errorServidor: errActual,
+            autofillHints: const [AutofillHints.password],
+            validator: (v) => (v == null || v.isEmpty) ? 'Escribe tu contraseña actual' : null,
           ),
+          const SizedBox(height: 16),
+          CampoTexto(
+            etiqueta: 'Nueva contraseña',
+            controller: _nueva,
+            contrasena: true,
+            ayuda: ayudaPassword,
+            errorServidor: errNueva,
+            autofillHints: const [AutofillHints.newPassword],
+            validator: PasswordRules.validate,
+          ),
+          const SizedBox(height: 16),
+          CampoTexto(
+            etiqueta: 'Confirmar contraseña',
+            controller: _confirmar,
+            contrasena: true,
+            validator: (v) => v != _nueva.text ? 'Las contraseñas no coinciden' : null,
+          ),
+          const SizedBox(height: 24),
+          BotonPrimario(texto: 'Cambiar contraseña', cargando: _cargando, onPressed: _cambiar),
+        ],
+      ),
+    );
+    return PopScope(
+      canPop: !widget.temporal,
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: !widget.temporal,
+          titleSpacing: widget.temporal ? StreakSize.screenPadding - 4 : 4,
+          title: Text(widget.temporal ? 'Cambia tu contraseña' : 'Cambiar contraseña'),
         ),
+        body: SafeArea(child: contenido),
       ),
     );
   }

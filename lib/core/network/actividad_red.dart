@@ -95,24 +95,22 @@ class AvisoServidorLento extends ConsumerWidget {
     if (!ref.watch(servidorLentoProvider)) return const SizedBox.shrink();
     return Container(
       key: const ValueKey('aviso-servidor-lento'),
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: StreakColors.surface2,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: StreakColors.accent),
+        color: StreakColors.surface1,
+        borderRadius: StreakRadius.campo,
+        border: Border.all(color: StreakColors.line),
       ),
-      child: const Row(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         children: [
-          SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-          SizedBox(width: 12),
-          Flexible(
-            child: Text(
-              textoServidorDespertando,
-              style: TextStyle(color: StreakColors.text, fontWeight: FontWeight.w600),
-            ),
+          const SizedBox(
+            width: StreakSize.iconSmall,
+            height: StreakSize.iconSmall,
+            child: CircularProgressIndicator(strokeWidth: 2),
           ),
+          const SizedBox(width: 12),
+          Flexible(child: Text(textoServidorDespertando, style: StreakText.cuerpoMedio)),
         ],
       ),
     );

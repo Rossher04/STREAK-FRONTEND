@@ -35,6 +35,10 @@ void main() {
       }));
       expect(e.codigo, 'DATOS_INVALIDOS');
       expect(e.mensaje, 'Usuario: Ya existe un usuario con ese nombre.');
+      // Por campo, sin prefijo, para mostrarlos bajo cada campo (RN-72).
+      expect(e.campo('username'), 'Ya existe un usuario con ese nombre.');
+      expect(e.campo('email'), 'Correo inválido.');
+      expect(e.campo('password'), isNull);
     });
 
     test('detalles sin campo (lista o non_field_errors) no antepone nombre', () {

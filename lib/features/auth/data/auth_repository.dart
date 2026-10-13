@@ -180,8 +180,8 @@ class AuthRepository {
 
   Future<void> logout() => _storage.clearSession();
 
-  /// GET /usuarios/me/. Con contraseña temporal (RN-07) el backend responde
-  /// 403 ACCESO_DENEGADO también aquí; no hay datos de perfil hasta cambiarla.
+  /// GET /usuarios/me/. Funciona también con contraseña temporal y trae `pass_temporal_flag` (RN-07), que es lo
+  /// que decide si hay que forzar el cambio (ya no se deduce de un 403 genérico).
   Future<Usuario> _cargarPerfil(String username) async {
     Usuario user;
     try {
@@ -192,10 +192,7 @@ class AuthRepository {
         'raw': resp.data,
       });
     } on DioException catch (e) {
-      final ex = AppException.fromDioError(e);
-      if (e.response?.statusCode != 403 || ex.codigo != 'ACCESO_DENEGADO') throw ex;
-      await _storage.setPassTemporal(true);
-      return Usuario(id: 0, username: username, email: '', passTemporal: true);
+      throw AppException.fromDioError(e);
     }
     await _storage.setIsPro(user.esPro);
     await _storage.setPassTemporal(user.passTemporal);

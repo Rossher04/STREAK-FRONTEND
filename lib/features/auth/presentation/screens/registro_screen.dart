@@ -1,11 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
+
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/streak_theme.dart';
 import '../../../../core/utils/password_rules.dart';
+import '../../../../core/widgets/botones.dart';
+import '../../../../core/widgets/campo_texto.dart';
+import '../../../../core/widgets/estructura.dart';
+import '../../../../core/widgets/streak_icon.dart';
 import '../../application/auth_controller.dart';
+import '../widgets/textos_legales.dart';
 
+/// Texto de ayuda de la contraseña (RN-03), igual en registro, restablecer y cambio.
+const ayudaPassword = 'Mínimo 8 caracteres, con una letra y un número';
+
+/// Validación local de correo (el backend valida de nuevo).
+String? validarCorreo(String? v) {
+  final t = v?.trim() ?? '';
+  if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(t)) return 'Escribe un correo válido';
+  return null;
+}
+
+/// Pantalla 02 · Registro.
 class RegistroScreen extends ConsumerStatefulWidget {
   const RegistroScreen({super.key});
 
@@ -15,128 +31,196 @@ class RegistroScreen extends ConsumerStatefulWidget {
 
 class _RegistroScreenState extends ConsumerState<RegistroScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _username = TextEditingController();
-  final _email = TextEditingController();
-  final _first = TextEditingController();
-  final _last = TextEditingController();
-  final _phone = TextEditingController();
+  final _usuario = TextEditingController();
+  final _correo = TextEditingController();
+  final _nombre = TextEditingController();
+  final _apellidos = TextEditingController();
+  final _telefono = TextEditingController();
   final _password = TextEditingController();
-  final _confirm = TextEditingController();
-  bool _loading = false;
-  bool _obscure = true;
+  bool _acepta = false;
+  bool _faltaAceptar = false;
+  bool _cargando = false;
+  AppException? _error;
 
   @override
   void dispose() {
-    _username.dispose();
-    _email.dispose();
-    _first.dispose();
-    _last.dispose();
-    _phone.dispose();
-    _password.dispose();
-    _confirm.dispose();
+    for (final c in [_usuario, _correo, _nombre, _apellidos, _telefono, _password]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _loading = true);
+  Future<void> _crear() async {
+    setState(() {
+      _error = null;
+      _faltaAceptar = !_acepta;
+    });
+    final valido = _formKey.currentState!.validate();
+    if (!valido || !_acepta) return;
+    setState(() => _cargando = true);
     try {
+      // TODO(backend #18): la fecha de nacimiento no existe en la API (ni en registro ni en perfil), no se envía.
       await ref.read(authControllerProvider.notifier).register(
-            username: _username.text,
-            email: _email.text,
+            username: _usuario.text,
+            email: _correo.text,
             password: _password.text,
-            firstName: _first.text,
-            lastName: _last.text,
-            telefono: _phone.text,
+            firstName: _nombre.text,
+            lastName: _apellidos.text,
+            telefono: _telefono.text,
           );
     } on AppException catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.mensaje)));
-      }
+      if (mounted) setState(() => _error = e);
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _cargando = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final e = _error;
+    final conocidos = {'username', 'email', 'first_name', 'last_name', 'telefono', 'password'};
+    final general = e != null && !e.campos.keys.any(conocidos.contains) ? e.mensaje : null;
     return Scaffold(
       appBar: AppBar(title: const Text('Crear cuenta')),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                const Text(
-                  'El usuario no se podrá cambiar después (RN-09).',
-                  style: TextStyle(color: StreakColors.text),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _username,
-                  decoration: const InputDecoration(labelText: 'Usuario'),
-                  validator: (v) => (v == null || v.trim().length < 3) ? 'Mínimo 3 caracteres' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _email,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(labelText: 'Correo'),
-                  validator: (v) =>
-                      (v == null || !v.contains('@')) ? 'Correo inválido' : null,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _first,
-                  decoration: const InputDecoration(labelText: 'Nombre'),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _last,
-                  decoration: const InputDecoration(labelText: 'Apellidos'),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _phone,
-                  decoration: const InputDecoration(labelText: 'Teléfono (opcional)'),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _password,
-                  obscureText: _obscure,
-                  decoration: InputDecoration(
-                    labelText: 'Contraseña',
-                    suffixIcon: IconButton(
-                      tooltip: _obscure ? 'Mostrar contraseña' : 'Ocultar contraseña',
-                      onPressed: () => setState(() => _obscure = !_obscure),
-                      icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(StreakSize.screenPadding, 8, StreakSize.screenPadding, 24),
+            children: [
+              if (general != null) ...[BannerAviso(texto: general), const SizedBox(height: 16)],
+              CampoTexto(
+                etiqueta: 'Usuario',
+                hint: 'mi_usuario',
+                controller: _usuario,
+                errorServidor: e?.campo('username'),
+                autofillHints: const [AutofillHints.newUsername],
+                validator: (v) => (v == null || v.trim().length < 3) ? 'Mínimo 3 caracteres' : null,
+              ),
+              const SizedBox(height: 16),
+              CampoTexto(
+                etiqueta: 'Correo electrónico',
+                hint: 'nombre@correo.com',
+                controller: _correo,
+                keyboardType: TextInputType.emailAddress,
+                errorServidor: e?.campo('email'),
+                autofillHints: const [AutofillHints.email],
+                validator: validarCorreo,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: CampoTexto(
+                      etiqueta: 'Nombre',
+                      controller: _nombre,
+                      errorServidor: e?.campo('first_name'),
+                      textCapitalization: TextCapitalization.words,
                     ),
                   ),
-                  validator: PasswordRules.validate,
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _confirm,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Confirmar contraseña'),
-                  validator: (v) => v != _password.text ? 'Las contraseñas no coinciden' : null,
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _loading ? null : _submit,
-                  child: Text(_loading ? 'CREANDO…' : 'CREAR CUENTA'),
-                ),
-                TextButton(
-                  onPressed: () => context.pop(),
-                  child: const Text('Ya tengo cuenta'),
-                ),
-              ],
-            ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: CampoTexto(
+                      etiqueta: 'Apellidos',
+                      controller: _apellidos,
+                      errorServidor: e?.campo('last_name'),
+                      textCapitalization: TextCapitalization.words,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              CampoTexto(
+                etiqueta: 'Teléfono',
+                controller: _telefono,
+                keyboardType: TextInputType.phone,
+                errorServidor: e?.campo('telefono'),
+              ),
+              const SizedBox(height: 16),
+              // TODO(backend #18): habilitar y enviar cuando la API acepte fecha_nacimiento.
+              const CampoTexto(
+                etiqueta: 'Fecha de nacimiento',
+                hint: 'dd/mm/aaaa',
+                habilitado: false,
+                sufijo: StreakIcons.calendar,
+                ayuda: 'Aún no disponible',
+              ),
+              const SizedBox(height: 16),
+              CampoTexto(
+                etiqueta: 'Contraseña',
+                controller: _password,
+                contrasena: true,
+                ayuda: ayudaPassword,
+                errorServidor: e?.campo('password'),
+                autofillHints: const [AutofillHints.newPassword],
+                validator: PasswordRules.validate,
+              ),
+              const SizedBox(height: 14),
+              _CasillaTerminos(
+                valor: _acepta,
+                error: _faltaAceptar,
+                onCambio: (v) => setState(() {
+                  _acepta = v;
+                  if (v) _faltaAceptar = false;
+                }),
+              ),
+              const SizedBox(height: 18),
+              BotonPrimario(texto: 'Crear cuenta', cargando: _cargando, onPressed: _crear),
+            ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _CasillaTerminos extends StatelessWidget {
+  const _CasillaTerminos({required this.valor, required this.error, required this.onCambio});
+
+  final bool valor;
+  final bool error;
+  final ValueChanged<bool> onCambio;
+
+  @override
+  Widget build(BuildContext context) {
+    final enlace = StreakText.pequeno.copyWith(
+      color: StreakColors.text,
+      fontWeight: FontWeight.w500,
+      decoration: TextDecoration.underline,
+      decorationColor: StreakColors.text,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Checkbox(
+              value: valor,
+              onChanged: (v) => onCambio(v ?? false),
+              side: BorderSide(color: error ? StreakColors.orangeText : StreakColors.line),
+              semanticLabel: 'Acepto los términos y la política de privacidad',
+            ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text('Acepto los ', style: StreakText.pequeno),
+                  InkWell(onTap: () => mostrarTerminos(context), child: Text('términos', style: enlace)),
+                  Text(' y la ', style: StreakText.pequeno),
+                  InkWell(onTap: () => mostrarPrivacidad(context), child: Text('política de privacidad', style: enlace)),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (error)
+          Padding(
+            padding: const EdgeInsets.only(left: 12),
+            child: Text('Debes aceptar los términos para crear la cuenta', style: StreakText.error),
+          ),
+      ],
     );
   }
 }
