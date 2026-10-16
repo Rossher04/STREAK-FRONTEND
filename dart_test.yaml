@@ -3,4 +3,6 @@
 # (package:test no permite un exclude_tags por defecto que `-t` pueda anular: ambos se combinan.)
 tags:
   capturas:
+  # Comparativas diseño/app (test/comparativas/): reescriben docs/comparativas/*.png.
+  # Solo corren con `-t comparativas --dart-define=COMPARATIVAS=true`.
   comparativas:

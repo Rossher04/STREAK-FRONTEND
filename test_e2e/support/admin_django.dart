@@ -21,7 +21,7 @@ Future<void> adminDjango(List<String> args) async {
     workingDirectory: backend,
     environment: {
       'DEBUG': 'True',
-      'SECRET_KEY': 'e2e-local-key-only',
+      'SECRET_KEY': Platform.environment['SECRET_KEY'] ?? 'e2e-local-key-only',
       'DATABASE_URL': 'sqlite:///$bd',
       'MEDIA_ROOT': media,
       'PYTHONPATH': '$aqui${windows ? ';' : ':'}$backend',

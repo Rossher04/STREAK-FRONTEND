@@ -113,7 +113,7 @@ void main() {
 
     testWidgets('Pendientes: botones con etiqueta y tamaño de toque de 48 dp', (tester) async {
       final handle = tester.ensureSemantics();
-      await montar(tester, TabPendientes(vista: _vista(), quinielaId: 1, onRefresh: () async {}));
+      await montar(tester, SingleChildScrollView(child: TabPendientes(vista: _vista(), quinielaId: 1)));
       await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
       await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
       handle.dispose();
@@ -121,10 +121,9 @@ void main() {
 
     testWidgets('Pendientes: los goles tienen etiqueta semántica con su valor', (tester) async {
       final handle = tester.ensureSemantics();
-      await montar(tester, TabPendientes(vista: _vista(), quinielaId: 1, onRefresh: () async {}));
+      await montar(tester, SingleChildScrollView(child: TabPendientes(vista: _vista(), quinielaId: 1)));
       expect(find.bySemanticsLabel(RegExp('Goles de Leones')), findsOneWidget);
-      expect(find.byTooltip('Sumar gol a Tigres'), findsOneWidget);
-      expect(find.byTooltip('Restar gol a Tigres'), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp('Goles de Tigres')), findsOneWidget);
       handle.dispose();
     });
 
@@ -157,7 +156,7 @@ void main() {
 
     testWidgets('Pendientes: contraste de texto', (tester) async {
       final handle = tester.ensureSemantics();
-      await montar(tester, TabPendientes(vista: _vista(), quinielaId: 1, onRefresh: () async {}));
+      await montar(tester, SingleChildScrollView(child: TabPendientes(vista: _vista(), quinielaId: 1)));
       await expectLater(tester, meetsGuideline(textContrastGuideline));
       handle.dispose();
     });

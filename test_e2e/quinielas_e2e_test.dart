@@ -137,6 +137,30 @@ void main() {
     expect((await repo.mias()).map((q) => q.id), contains(nueva.id));
   });
 
+  test('21 historial: resumen del backend (puesto final y puntos) y vacío para quien no tiene', () async {
+    await a.auth.login('ana', clave);
+    final repo = a.container.read(quinielasRepositoryProvider);
+    final h = await repo.historialResumen(a.sesion.user!.id);
+    expect(h.offline, isFalse);
+    final clausura = h.items.singleWhere((q) => q.nombre == 'Quiniela Clausura');
+    expect(clausura.torneoNombre, 'Clausura E2E');
+    expect(clausura.cantidadInscritos, 2);
+    expect(clausura.misPuntos, 5, reason: 'ana acertó el 1-0 exacto');
+    expect(clausura.miPosicion, 1);
+
+    final beto = await AppE2E.crear();
+    addTearDown(beto.cerrar);
+    await beto.auth.login('beto', clave);
+    final hb = await beto.repo.historialResumen(beto.usuarioId);
+    final cb = hb.items.singleWhere((q) => q.nombre == 'Quiniela Clausura');
+    expect((cb.misPuntos, cb.miPosicion), (3, 2), reason: 'solo el resultado: 3 pts, 2.º');
+
+    final nuevo = await AppE2E.crear();
+    addTearDown(nuevo.cerrar);
+    await nuevo.registrarNuevo('hist');
+    expect((await nuevo.repo.historialResumen(nuevo.usuarioId)).items, isEmpty);
+  });
+
   test('providers: misQuinielasProvider y torneosActivosProvider leen la API real', () async {
     await a.registrarNuevo('prov');
     expect((await a.container.read(misQuinielasProvider.future)).items, isEmpty);

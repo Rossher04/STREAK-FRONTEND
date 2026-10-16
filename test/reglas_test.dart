@@ -45,6 +45,58 @@ void main() {
     });
   });
 
+  group('esFaseEliminatoria con el tipo normalizado del backend', () {
+    test('el tipo manda sobre el nombre', () {
+      expect(esFaseEliminatoria('LIGA', 'Ronda final'), isFalse);
+      expect(esFaseEliminatoria('GRUPOS', 'Semifinal de grupo'), isFalse);
+      expect(esFaseEliminatoria('ELIMINATORIA', 'Ronda 2'), isTrue);
+    });
+    test('tipo desconocido: heurística de respaldo', () {
+      expect(esFaseEliminatoria('KO', 'Cuartos de final'), isTrue);
+      expect(esFaseEliminatoria('', 'Jornada 3'), isFalse);
+    });
+  });
+
+  group('cierre del servidor y texto "Cierra en…"', () {
+    final inicio = DateTime.utc(2026, 10, 12, 20, 0);
+    test('cierre_pronosticos del servidor tiene prioridad', () {
+      final servidor = inicio.subtract(const Duration(minutes: 30));
+      expect(cierreDe(inicio, cierreServidor: servidor), servidor);
+      expect(cierreDe(inicio), inicio.subtract(const Duration(minutes: 5)));
+      expect(
+        puedeEditarPronostico(
+          estadoPartido: 'PROGRAMADO',
+          fechaHora: inicio,
+          ahoraServidor: inicio.subtract(const Duration(minutes: 20)),
+          torneoFinalizado: false,
+          cierreServidor: servidor,
+        ),
+        isFalse,
+      );
+    });
+    test('pronosticos_abiertos=false del servidor cierra', () {
+      expect(
+        puedeEditarPronostico(
+          estadoPartido: 'PROGRAMADO',
+          fechaHora: inicio,
+          ahoraServidor: inicio.subtract(const Duration(hours: 2)),
+          torneoFinalizado: false,
+          abiertoServidor: false,
+        ),
+        isFalse,
+      );
+    });
+    test('textos', () {
+      final cierre = inicio.subtract(const Duration(minutes: 5));
+      expect(textoCierraEn(cierre, cierre.subtract(const Duration(hours: 1, minutes: 20))), 'Cierra en 1 h 20 min');
+      expect(textoCierraEn(cierre, cierre.subtract(const Duration(hours: 3))), 'Cierra en 3 h');
+      expect(textoCierraEn(cierre, cierre.subtract(const Duration(minutes: 8))), 'Cierra en 8 min');
+      expect(textoCierraEn(cierre, cierre.subtract(const Duration(seconds: 20))), 'Cierra en menos de 1 min');
+      expect(textoCierraEn(cierre, cierre.subtract(const Duration(hours: 25))), isNull);
+      expect(textoCierraEn(cierre, cierre), isNull);
+    });
+  });
+
   group('puedeEditarPronostico (RN-37, RN-33)', () {
     final inicio = DateTime.utc(2026, 10, 12, 20, 0);
     bool editable({

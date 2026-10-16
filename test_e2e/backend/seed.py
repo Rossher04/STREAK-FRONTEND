@@ -56,7 +56,13 @@ clausura = torneo('Clausura E2E', 'FINALIZADO', jugados=True)
 ana = Usuario.objects.get(username='ana')
 q = Quiniela.objects.create(nombre='Quiniela Clausura', torneo=clausura, creador=ana,
                             codigo_unico='CLAU25', max_participantes=10)
-Participante.objects.create(quiniela=q, usuario=ana)
+pc_ana = Participante.objects.create(quiniela=q, usuario=ana)
+# Resumen del historial (puesto final y puntos): ana acierta el 1-0 exacto (5) y beto solo el resultado (3).
+beto_hist = Usuario.objects.get(username='beto')
+pc_beto = Participante.objects.create(quiniela=q, usuario=beto_hist)
+fin_clausura = clausura.partidos.get(estado='FINALIZADO')
+Pronostico.objects.create(participante=pc_ana, partido=fin_clausura, goles_local_pred=1, goles_visita_pred=0)
+Pronostico.objects.create(participante=pc_beto, partido=fin_clausura, goles_local_pred=2, goles_visita_pred=0)
 
 # ---- B5: torneo con fechas relativas a now() para probar cierre, puntos, tabla y ocultos ----
 usuario('dani')

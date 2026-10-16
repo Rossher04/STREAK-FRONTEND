@@ -1,330 +1,185 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/errors/app_exception.dart';
-import '../../../../core/network/server_clock.dart';
+import 'package:flutter/services.dart';
 import '../../../../core/theme/streak_theme.dart';
-import '../../application/quinielas_providers.dart';
+import '../../../../core/widgets/chips.dart';
+import '../../../../core/widgets/estructura.dart';
+import '../../../../core/widgets/streak_icon.dart';
 import '../../domain/quiniela_vista.dart';
 import '../../domain/reglas.dart';
 import 'quiniela_widgets.dart';
 
-/// Aviso de eliminatoria (RN-23).
-const avisoNoventa =
-    "Se pronostica el marcador de los 90' reglamentarios; prórroga y penales no cuentan";
+/// Ancho de la casilla de goles: el de la maqueta, pero nunca menos que el mínimo táctil (48 dp).
+const _anchoCasilla = StreakSize.cajaGolesAncho > kMinInteractiveDimension
+    ? StreakSize.cajaGolesAncho
+    : kMinInteractiveDimension;
 
-/// Partido pendiente con editor de marcador (steppers 0 a 20, RN-35). La edición se cierra
-/// 5 minutos antes del inicio según la hora del servidor (RN-37).
-class PartidoPendienteCard extends ConsumerStatefulWidget {
+/// Solo enteros de [golesMin] a [golesMax] (RN-35): se rechaza lo que se salga del rango.
+class GolesFormatter extends TextInputFormatter {
+  const GolesFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final t = newValue.text;
+    if (t.isEmpty) return newValue;
+    final n = int.tryParse(t);
+    if (n == null || n < golesMin || n > golesMax || t.length > 2) return oldValue;
+    return newValue;
+  }
+}
+
+/// Chip de estado de un partido pendiente: "En juego", "Cierra en 1 h 20 min" (borde naranja),
+/// "Cierra mié 14 · 11:55" (neutro, falta más de un día) o "Cerrado" (candado).
+Widget chipPendiente(Partido p, {required bool editable, required DateTime ahora}) {
+  if (p.enJuego) return const ChipStreak('En juego', variante: VarianteChip.live, grande: true);
+  if (!editable) {
+    return const ChipStreak('Cerrado', variante: VarianteChip.contorno, icono: StreakIcons.lock, grande: true);
+  }
+  final pronto = textoCierraEn(p.cierre, ahora);
+  if (pronto != null) return ChipStreak(pronto, variante: VarianteChip.warn, grande: true);
+  return ChipStreak(textoCierre(cierre: p.cierre, ahora: ahora), grande: true);
+}
+
+/// Tarjeta de partido pendiente (16): fecha local, chip de cierre, escudos y casillas de goles 0–20.
+/// El estado (borradores, errores) lo lleva la pestaña: aquí solo se pinta.
+class PartidoPendienteCard extends StatelessWidget {
   const PartidoPendienteCard({
     super.key,
     required this.vista,
     required this.partido,
-    required this.quinielaId,
+    required this.ahora,
+    required this.editable,
+    required this.local,
+    required this.visita,
+    this.error,
+    this.onCambio,
     this.onAbrirDetalle,
   });
 
   final QuinielaVista vista;
   final Partido partido;
-  final int quinielaId;
+  final DateTime ahora;
+  final bool editable;
+  final TextEditingController local;
+  final TextEditingController visita;
+
+  /// Motivo por el que no se guardó este pronóstico (se conserva lo escrito).
+  final String? error;
+  final VoidCallback? onCambio;
   final VoidCallback? onAbrirDetalle;
 
   @override
-  ConsumerState<PartidoPendienteCard> createState() =>
-      _PartidoPendienteCardState();
-}
-
-class _PartidoPendienteCardState extends ConsumerState<PartidoPendienteCard> {
-  late int _local;
-  late int _visita;
-  bool _modificado = false;
-  bool _guardando = false;
-  bool _guardado = false;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _reiniciarDesdePartido();
-    // Un tick por segundo solo importa en la última hora (cuenta regresiva y cierre).
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      final falta = cierreDe(widget.partido.fechaHora).difference(_ahora());
-      if (mounted && falta.abs() <= const Duration(hours: 1)) setState(() {});
-    });
-  }
-
-  @override
-  void didUpdateWidget(covariant PartidoPendienteCard old) {
-    super.didUpdateWidget(old);
-    if (!_modificado && old.partido.pronostico != widget.partido.pronostico) {
-      _reiniciarDesdePartido();
-    }
-  }
-
-  void _reiniciarDesdePartido() {
-    _local = widget.partido.pronostico?.local ?? 0;
-    _visita = widget.partido.pronostico?.visita ?? 0;
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  DateTime _ahora() => ref.read(serverClockProvider).ahora();
-
-  Future<void> _guardar() async {
-    final messenger = ScaffoldMessenger.of(context);
-    setState(() => _guardando = true);
-    try {
-      await ref.read(quinielasRepositoryProvider).guardarPronostico(
-            widget.quinielaId,
-            widget.partido.id,
-            Marcador(_local, _visita),
-          );
-      if (!mounted) return;
-      setState(() {
-        _modificado = false;
-        _guardado = true;
-      });
-      ref.invalidate(quinielaVistaProvider(widget.quinielaId));
-    } on AppException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.mensaje)));
-      // Si el servidor ya cerró (PRONOSTICOS_CERRADOS) se refresca para mostrar el estado real.
-      if (e.codigo == 'PRONOSTICOS_CERRADOS' ||
-          e.codigo == 'TORNEO_NO_ACTIVO') {
-        ref.invalidate(quinielaVistaProvider(widget.quinielaId));
-      }
-    } finally {
-      if (mounted) setState(() => _guardando = false);
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final v = widget.vista;
-    final p = widget.partido;
-    final ahora = _ahora();
-    final editable = puedeEditarPronostico(
-      estadoPartido: p.estado,
-      fechaHora: p.fechaHora,
-      ahoraServidor: ahora,
-      torneoFinalizado: v.torneoFinalizado,
-    );
-    final fase = v.fases[p.faseId];
-    final cuenta = editable ? cuentaRegresiva(p.fechaHora, ahora) : null;
-    final puedeGuardar = editable &&
-        !v.offline &&
-        !_guardando &&
-        (_modificado || p.pronostico == null);
-
-    String estadoTexto;
-    if (v.torneoFinalizado) {
-      estadoTexto = 'Quiniela finalizada · solo lectura';
-    } else if (p.estado == 'EN_JUEGO') {
-      estadoTexto = 'En juego · pronósticos cerrados';
-    } else if (!editable) {
-      estadoTexto =
-          'Cerrado · los pronósticos cierran $minutosCierre min antes';
-    } else {
-      estadoTexto = textoCierre(cierre: cierreDe(p.fechaHora), ahora: ahora);
-    }
-
-    return Card(
-      child: InkWell(
-        onTap: editable ? null : widget.onAbrirDetalle,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                fechaLocal(p.fechaHora),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                    color: StreakColors.text, fontSize: 12),
-              ),
-              const SizedBox(height: 8),
-              if (editable)
-                Row(
-                  children: [
-                    Expanded(
-                        child: _Lado(
-                            nombre: v.nombreEquipo(p.equipoLocalId),
-                            valor: _local,
-                            activo: editable,
-                            fijo: p.pronostico?.local,
-                            onCambio: (n) => setState(() {
-                                  _local = n;
-                                  _modificado = true;
-                                  _guardado = false;
-                                }))),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8),
-                      child: Text('–',
-                          style: TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.bold)),
-                    ),
-                    Expanded(
-                        child: _Lado(
-                            nombre: v.nombreEquipo(p.equipoVisitaId),
-                            valor: _visita,
-                            activo: editable,
-                            fijo: p.pronostico?.visita,
-                            onCambio: (n) => setState(() {
-                                  _visita = n;
-                                  _modificado = true;
-                                  _guardado = false;
-                                }))),
-                  ],
-                ),
-              if (!editable)
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(v.nombreEquipo(p.equipoLocalId),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontWeight: FontWeight.w700)),
-                    ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12),
-                      child: Text('vs',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.w800)),
-                    ),
-                    Expanded(
-                      child: Text(v.nombreEquipo(p.equipoVisitaId),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontWeight: FontWeight.w700)),
-                    ),
-                  ],
-                ),
-              const SizedBox(height: 8),
-              Text(
-                cuenta != null ? '$estadoTexto · faltan $cuenta' : estadoTexto,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: cuenta != null
-                      ? StreakColors.cream
-                      : StreakColors.text,
-                  fontWeight:
-                      cuenta != null ? FontWeight.w700 : FontWeight.normal,
-                  fontSize: 12,
-                ),
-              ),
-              if (fase?.esEliminatoria == true) ...[
-                const SizedBox(height: 4),
-                const Text(
-                  avisoNoventa,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: StreakColors.text, fontSize: 12),
-                ),
+    final p = partido;
+    final nLocal = vista.nombreEquipo(p.equipoLocalId);
+    final nVisita = vista.nombreEquipo(p.equipoVisitaId);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TarjetaStreak(
+        onTap: editable ? null : onAbrirDetalle,
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const StreakIcon(StreakIcons.calendar, size: StreakSize.iconChip),
+                const SizedBox(width: 6),
+                Expanded(child: Text(fechaLocal(p.fechaHora), style: StreakText.pequeno)),
+                const SizedBox(width: 8),
+                chipPendiente(p, editable: editable, ahora: ahora),
               ],
-              if (!editable) ...[
-                const SizedBox(height: 8),
-                Text(
-                  p.pronostico == null
-                      ? 'No pronosticaste'
-                      : 'Tu pronóstico: ${textoMarcador(p.pronostico)}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(child: EquipoColumna(nombre: nLocal, escudo: p.equipoLocal?.escudo ?? vista.escudoEquipo(p.equipoLocalId))),
+                _Casilla(equipo: nLocal, controller: local, editable: editable, fijo: p.pronostico?.local, onCambio: onCambio),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('–', style: StreakText.cajaGoles.copyWith(color: StreakColors.muted)),
                 ),
-              ] else ...[
-                const SizedBox(height: 10),
-                if (v.offline)
-                  const Text(
-                    'Sin conexión: no se puede guardar',
-                    textAlign: TextAlign.center,
-                    style:
-                        TextStyle(color: StreakColors.text, fontSize: 12),
-                  )
-                else
-                  ElevatedButton(
-                    onPressed: puedeGuardar ? _guardar : null,
-                    child: Text(_guardando
-                        ? 'GUARDANDO…'
-                        : (_guardado || (!_modificado && p.pronostico != null))
-                            ? 'GUARDADO ✓'
-                            : 'GUARDAR PRONÓSTICO'),
-                  ),
+                _Casilla(equipo: nVisita, controller: visita, editable: editable, fijo: p.pronostico?.visita, onCambio: onCambio),
+                Expanded(child: EquipoColumna(nombre: nVisita, escudo: p.equipoVisita?.escudo ?? vista.escudoEquipo(p.equipoVisitaId))),
               ],
+            ),
+            if (error != null) ...[
+              const SizedBox(height: 10),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const StreakIcon(StreakIcons.alert, size: StreakSize.iconMini, color: StreakColors.orangeText),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text(error!, style: StreakText.error)),
+                ],
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _Lado extends StatelessWidget {
-  const _Lado({
-    required this.nombre,
-    required this.valor,
-    required this.activo,
-    required this.onCambio,
-    this.fijo,
-  });
+class _Casilla extends StatelessWidget {
+  const _Casilla({required this.equipo, required this.controller, required this.editable, this.fijo, this.onCambio});
 
-  final String nombre;
-  final int valor;
-  final bool activo;
-  final ValueChanged<int> onCambio;
+  final String equipo;
+  final TextEditingController controller;
+  final bool editable;
 
   /// Goles ya guardados que se muestran cuando no se puede editar.
   final int? fijo;
+  final VoidCallback? onCambio;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(nombre,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.w700)),
-        const SizedBox(height: 4),
-        if (!activo)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: Text(fijo == null ? '–' : '$fijo',
-                style:
-                    const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-          )
-        else
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                tooltip: 'Restar gol a $nombre',
-                icon: const Icon(Icons.remove_circle_outline),
-                onPressed: activo && valor > golesMin
-                    ? () => onCambio(valor - 1)
-                    : null,
-              ),
-              Semantics(
-                label: 'Goles de $nombre',
-                value: '$valor',
-                excludeSemantics: true,
-                child: SizedBox(
-                  width: 28,
-                  child: Text('$valor',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                          fontSize: 22, fontWeight: FontWeight.w800)),
-                ),
-              ),
-              IconButton(
-                tooltip: 'Sumar gol a $nombre',
-                icon: const Icon(Icons.add_circle_outline),
-                onPressed: activo && valor < golesMax
-                    ? () => onCambio(valor + 1)
-                    : null,
-              ),
-            ],
+    if (!editable) {
+      return Semantics(
+        label: 'Tu pronóstico para $equipo',
+        value: fijo == null ? 'sin pronóstico' : '$fijo',
+        excludeSemantics: true,
+        child: Container(
+          width: _anchoCasilla,
+          height: StreakSize.cajaGolesAlto,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: StreakColors.bg,
+            borderRadius: StreakRadius.campo,
+            border: Border.all(color: StreakColors.line),
           ),
-      ],
+          child: Text(fijo == null ? '–' : '$fijo', style: StreakText.cajaGoles.copyWith(color: StreakColors.muted)),
+        ),
+      );
+    }
+    final borde = OutlineInputBorder(
+      borderRadius: StreakRadius.campo,
+      borderSide: const BorderSide(color: StreakColors.cream),
+    );
+    return SizedBox(
+      width: _anchoCasilla,
+      height: StreakSize.cajaGolesAlto,
+      child: Semantics(
+        label: 'Goles de $equipo',
+        child: TextField(
+          controller: controller,
+          textAlign: TextAlign.center,
+          textAlignVertical: TextAlignVertical.center,
+          keyboardType: TextInputType.number,
+          textInputAction: TextInputAction.next,
+          style: StreakText.cajaGoles,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly, const GolesFormatter()],
+          onChanged: (_) => onCambio?.call(),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: StreakColors.bg,
+            hintText: '–',
+            contentPadding: EdgeInsets.zero,
+            enabledBorder: borde,
+            focusedBorder: borde.copyWith(borderSide: const BorderSide(color: StreakColors.cream, width: 2)),
+            border: borde,
+          ),
+        ),
+      ),
     );
   }
 }
