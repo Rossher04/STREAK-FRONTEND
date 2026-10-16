@@ -30,6 +30,7 @@ class PagoPro {
     required this.moneda,
     required this.estado,
     required this.fecha,
+    this.referencia = '',
   });
 
   factory PagoPro.fromJson(Map<String, dynamic> j) => PagoPro(
@@ -38,6 +39,7 @@ class PagoPro {
         moneda: (j['moneda'] as String? ?? '').toUpperCase(),
         estado: j['estado'] as String? ?? '',
         fecha: DateTime.parse(j['fecha'] as String).toUtc(),
+        referencia: j['referencia'] as String? ?? '',
       );
 
   final int id;
@@ -45,6 +47,27 @@ class PagoPro {
   final String moneda;
   final String estado;
   final DateTime fecha;
+  final String referencia;
+}
+
+/// GET /pro/pago-pendiente/ cuando hay una orden PENDIENTE o FALLIDA: permite recuperar la
+/// Idempotency-Key (si el teléfono la perdió) y ofrecer cancelar la compra. El client_secret
+/// no se guarda: se vuelve a obtener con POST /pro/suscribir/ y la clave recuperada.
+class PagoPendiente {
+  const PagoPendiente({required this.pago, required this.claveIdempotencia, required this.estadoStripe});
+
+  factory PagoPendiente.fromJson(Map<String, dynamic> j) => PagoPendiente(
+        pago: PagoPro.fromJson((j['pago'] as Map).cast<String, dynamic>()),
+        claveIdempotencia: j['clave_idempotencia'] as String?,
+        estadoStripe: j['estado'] as String? ?? '',
+      );
+
+  final PagoPro pago;
+  final String? claveIdempotencia;
+  final String estadoStripe;
+
+  @override
+  String toString() => 'PagoPendiente(pago: ${pago.id}, estado: $estadoStripe)'; // sin clave ni secreto
 }
 
 /// GET /pro/estado/: `{es_pro, plan: {monto_centavos, moneda, tipo, modo_prueba, max_participantes,
@@ -84,10 +107,16 @@ class EstadoPro {
   /// "$5.00".
   String get importe => '\$${(montoCentavos / 100).toStringAsFixed(2)}';
 
+  /// "$5.00 USD" (resumen y botón de pagar).
+  String get importeConMoneda => '$importe $moneda';
+
   /// "$5" si es entero, si no "$5.50" (chip del panel lateral).
   String get importeCorto =>
       montoCentavos % 100 == 0 ? '\$${montoCentavos ~/ 100}' : importe;
 }
+
+const _proPagoPendiente = '/pro/pago-pendiente/';
+String _proCancelarPago(int id) => '/pro/pagos/$id/cancelar/';
 
 class ProRepository {
   ProRepository(this._dio);
@@ -125,5 +154,19 @@ class ProRepository {
   Future<List<PagoPro>> pagos() => _call(() async {
         final resp = await _dio.get(ApiConstants.proPagos);
         return (resp.data as List).cast<Map<String, dynamic>>().map(PagoPro.fromJson).toList();
+      });
+
+  /// null si no hay compra pendiente (`{"pago": null}`). Con una orden pendiente y Stripe sin
+  /// configurar: 503 PAGOS_NO_CONFIGURADOS; 409 PAGO_REQUIERE_REVISION si no se puede conciliar.
+  Future<PagoPendiente?> pagoPendiente() => _call(() async {
+        final resp = await _dio.get(_proPagoPendiente);
+        final data = resp.data as Map<String, dynamic>;
+        return data['pago'] == null ? null : PagoPendiente.fromJson(data);
+      });
+
+  /// Cancela una orden propia no liquidada. 409 PAGO_NO_CANCELABLE si ya se liquidó.
+  Future<PagoPro> cancelarPago(int pagoId) => _call(() async {
+        final resp = await _dio.post(_proCancelarPago(pagoId));
+        return PagoPro.fromJson(resp.data as Map<String, dynamic>);
       });
 }

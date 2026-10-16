@@ -1,42 +1,106 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+
 import '../../../core/errors/app_exception.dart';
 import '../../../core/theme/streak_theme.dart';
+import '../../../core/widgets/botones.dart';
+import '../../../core/widgets/chips.dart';
+import '../../../core/widgets/estructura.dart';
 import '../../../core/widgets/icono_pro.dart';
+import '../../../core/widgets/streak_icon.dart';
 import '../../auth/application/auth_controller.dart';
 import '../application/pago_pro_controller.dart';
 import '../data/pro_repository.dart';
-import 'paywall_contenido.dart';
+import 'pro_textos.dart';
 
-/// Plan Pro: paywall para quien no lo tiene, "Tu plan PRO" con historial para quien sí.
+/// Ruta de la pantalla de pago (23 y su resultado 24).
+const rutaPagoPro = '/pro/pago';
+
+/// Pantalla 22 · Plan Pro. Sin PRO: precio de GET /pro/estado/, beneficios reales y "Obtener Plan Pro".
+/// Con PRO: "Tu plan PRO" con el historial de GET /pro/pagos/.
 class ProScreen extends ConsumerWidget {
   const ProScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final esPro = ref.watch(authControllerProvider.select((s) => s.user?.esPro ?? false));
-    final estado = ref.watch(pagoProControllerProvider);
-    final ctrl = ref.read(pagoProControllerProvider.notifier);
-    // Tras activarse en esta sesión se muestra "Tu plan PRO" (esPro ya es true).
+    final esProUsuario = ref.watch(authControllerProvider.select((s) => s.user?.esPro ?? false));
+    final estado = ref.watch(estadoProProvider);
     return Scaffold(
-      appBar: AppBar(title: Text(esPro ? 'Tu plan PRO' : 'Hazte PRO')),
-      body: esPro
-          ? _TuPlanPro(recienActivado: estado.fase == FasePago.activo)
-          : PaywallContenido(
-              estado: estado,
-              motivoNoDisponible: motivoPagosNoDisponibles(),
-              onPagar: ctrl.pagar,
-              onVerificar: ctrl.verificar,
-            ),
+      appBar: AppBar(title: const Text('Plan Pro')),
+      body: SafeArea(
+        top: false,
+        child: estado.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.all(StreakSize.screenPadding),
+            child: EsqueletoTarjetas(cantidad: 2),
+          ),
+          error: (e, _) => EstadoError(
+            mensaje: e is AppException ? e.mensaje : 'No se pudo cargar el plan.',
+            sinConexion: e is AppException && (e.codigo == 'NETWORK_ERROR' || e.codigo == 'TIMEOUT_ERROR'),
+            onReintentar: () => ref.invalidate(estadoProProvider),
+          ),
+          data: (e) => (esProUsuario || e.esPro) ? TuPlanPro(estado: e) : PlanProContenido(estado: e),
+        ),
+      ),
     );
   }
 }
 
-class _TuPlanPro extends ConsumerWidget {
-  const _TuPlanPro({required this.recienActivado});
+/// Contenido de la pantalla 22 (sin PRO).
+class PlanProContenido extends StatelessWidget {
+  const PlanProContenido({super.key, required this.estado});
 
-  final bool recienActivado;
+  final EstadoPro estado;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(StreakSize.screenPadding, 28, StreakSize.screenPadding, 24),
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(estado.importeCorto, key: const ValueKey('precio'), style: StreakText.precio),
+            const SizedBox(width: 8),
+            Text(estado.moneda, style: StreakText.cuerpo.copyWith(color: StreakColors.muted)),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(textoPagoUnico, key: const ValueKey('periodo'), style: StreakText.cuerpoMedio),
+        const SizedBox(height: 4),
+        Text(
+          'Más espacio y estadísticas para tus quinielas. '
+          'El plan gratis llega a ${estado.maxParticipantesGratis} participantes.',
+          style: StreakText.secundario,
+        ),
+        const SizedBox(height: 14),
+        ListaBeneficios(estado: estado),
+        const SizedBox(height: 16),
+        BotonPrimario(
+          key: const ValueKey('boton-obtener'),
+          texto: 'Obtener Plan Pro',
+          onPressed: () => context.push(rutaPagoPro),
+        ),
+        const SizedBox(height: 8),
+        EnlaceTexto(
+          key: const ValueKey('enlace-condiciones'),
+          texto: textoEnlaceCondiciones,
+          subrayado: true,
+          onPressed: () => mostrarCondicionesPro(context, estado),
+        ),
+      ],
+    );
+  }
+}
+
+/// "Tu plan PRO": estado activo, beneficios e historial de pagos.
+class TuPlanPro extends ConsumerWidget {
+  const TuPlanPro({super.key, required this.estado});
+
+  final EstadoPro estado;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -48,73 +112,91 @@ class _TuPlanPro extends ConsumerWidget {
       },
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(StreakSize.screenPadding, 24, StreakSize.screenPadding, 24),
         children: [
-          const Center(child: IconoPro(radio: 40)),
-          const SizedBox(height: 8),
-          Text(recienActivado ? '¡PRO activado!' : 'Tu plan PRO está activo',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: StreakColors.cream)),
-          const SizedBox(height: 8),
-          const Text(textoPagoUnico, textAlign: TextAlign.center),
-          const SizedBox(height: 16),
-          for (final b in beneficiosPro)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(children: [
-                const Icon(Icons.check_circle, color: StreakColors.accent, size: 20),
-                const SizedBox(width: 8),
-                Expanded(child: Text(b)),
-              ]),
-            ),
-          const SizedBox(height: 8),
-          const Text(textoSinVentaja, style: TextStyle(color: StreakColors.text, fontSize: 13)),
-          const SizedBox(height: 24),
-          Text('Historial de pagos', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
+          Row(
+            children: [
+              const IconoPro(radio: 24),
+              const SizedBox(width: 14),
+              Expanded(child: Text('Tu plan PRO', style: StreakText.tituloGrande)),
+              const ChipStreak('Activo', variante: VarianteChip.pro),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(textoPagoUnico, style: StreakText.secundario),
+          const SizedBox(height: 10),
+          ListaBeneficios(estado: estado),
+          const EncabezadoSeccion('Historial de pagos'),
           pagos.when(
-            loading: () => const Padding(
-              padding: EdgeInsets.all(24),
-              child: Center(child: CircularProgressIndicator()),
+            loading: () => const EsqueletoTarjetas(cantidad: 1),
+            error: (e, _) => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(e is AppException ? e.mensaje : 'No se pudo cargar el historial.', style: StreakText.secundario),
+                const SizedBox(height: 8),
+                BotonSecundario(
+                  texto: 'Reintentar',
+                  icono: StreakIcons.retry,
+                  onPressed: () => ref.invalidate(pagosProProvider),
+                ),
+              ],
             ),
-            error: (e, _) => Column(children: [
-              Text(e is AppException ? e.mensaje : 'No se pudo cargar el historial.'),
-              TextButton(onPressed: () => ref.invalidate(pagosProProvider), child: const Text('Reintentar')),
-            ]),
             data: (lista) => lista.isEmpty
-                ? const Text('Aún no hay pagos registrados.', style: TextStyle(color: StreakColors.text))
-                : Column(children: [for (final p in lista) _FilaPago(p)]),
+                ? Text('Aún no hay pagos registrados.', style: StreakText.secundario)
+                : Column(children: [for (final p in lista) FilaPago(p)]),
           ),
           const SizedBox(height: 16),
-          const Text(textoComoCancelar, style: TextStyle(color: StreakColors.text, fontSize: 13)),
+          Text(textoComoCancelar, style: StreakText.pequeno),
+          EnlaceTexto(
+            texto: textoEnlaceCondiciones,
+            subrayado: true,
+            onPressed: () => mostrarCondicionesPro(context, estado),
+          ),
         ],
       ),
     );
   }
 }
 
-class _FilaPago extends StatelessWidget {
-  const _FilaPago(this.pago);
+class FilaPago extends StatelessWidget {
+  const FilaPago(this.pago, {super.key});
 
   final PagoPro pago;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        title: Text('${pago.moneda} ${pago.monto}', style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Text(DateFormat("d MMM yyyy · HH:mm", 'es').format(pago.fecha.toLocal())),
-        trailing: Text(_estado(pago.estado), style: const TextStyle(fontWeight: FontWeight.w600)),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: TarjetaStreak(
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('\$${pago.monto} ${pago.moneda}', style: StreakText.tituloTarjeta),
+                  const SizedBox(height: 2),
+                  Text(DateFormat("d MMM yyyy · HH:mm", 'es').format(pago.fecha.toLocal()),
+                      style: StreakText.pequeno),
+                ],
+              ),
+            ),
+            ChipStreak(
+              nombreEstadoPago(pago.estado),
+              variante: pago.estado == 'COMPLETADO' ? VarianteChip.pro : VarianteChip.neutro,
+            ),
+          ],
+        ),
       ),
     );
   }
-
-  static String _estado(String e) => switch (e) {
-        'COMPLETADO' => 'Completado',
-        'PENDIENTE' => 'Pendiente',
-        'FALLIDO' => 'Fallido',
-        'CANCELADO' => 'Cancelado',
-        'REEMBOLSADO' => 'Reembolsado',
-        _ => e,
-      };
 }
+
+String nombreEstadoPago(String e) => switch (e) {
+      'COMPLETADO' => 'Completado',
+      'PENDIENTE' => 'Pendiente',
+      'FALLIDO' => 'Fallido',
+      'CANCELADO' => 'Cancelado',
+      'REEMBOLSADO' => 'Reembolsado',
+      _ => e,
+    };

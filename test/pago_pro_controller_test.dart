@@ -37,12 +37,25 @@ class _Auth extends AuthController {
 }
 
 class _Repo implements ProRepository {
-  _Repo({this.respuestasEstado = const [], this.errorAlIniciar});
+  _Repo({this.respuestasEstado = const [], this.errorAlIniciar, this.pendiente, this.errorAlCancelar});
 
   final List<bool> respuestasEstado;
-  final AppException? errorAlIniciar;
+  AppException? errorAlIniciar;
+  final PagoPendiente? pendiente;
+  final AppException? errorAlCancelar;
   final clavesUsadas = <String>[];
+  final cancelados = <int>[];
   int consultas = 0;
+
+  @override
+  Future<PagoPendiente?> pagoPendiente() async => pendiente;
+
+  @override
+  Future<PagoPro> cancelarPago(int pagoId) async {
+    if (errorAlCancelar != null) throw errorAlCancelar!;
+    cancelados.add(pagoId);
+    return PagoPro(id: pagoId, monto: '5.00', moneda: 'USD', estado: 'CANCELADO', fecha: DateTime.utc(2026));
+  }
 
   @override
   Future<bool> esPro() async {
@@ -53,7 +66,11 @@ class _Repo implements ProRepository {
   @override
   Future<IntentoPago> iniciarPago(String claveIdempotencia) async {
     clavesUsadas.add(claveIdempotencia);
-    if (errorAlIniciar != null) throw errorAlIniciar!;
+    if (errorAlIniciar != null) {
+      final e = errorAlIniciar!;
+      // PAGO_PENDIENTE solo para claves que no son la de la orden pendiente.
+      if (e.codigo != 'PAGO_PENDIENTE' || claveIdempotencia != pendiente?.claveIdempotencia) throw e;
+    }
     return const IntentoPago(pagoId: 1, referencia: 'pi_1', clientSecret: 'secreto', estado: 'requires_payment_method');
   }
 
@@ -128,14 +145,16 @@ void main() {
     expect(repo.clavesUsadas, [primera, primera]);
   });
 
-  test('si el webhook tarda más de 30 s queda "activando PRO" y se puede reintentar', () async {
+  test('si el webhook tarda más de 30 s queda "En revisión" y se puede comprobar de nuevo', () async {
     final c = crear(r: _Repo(respuestasEstado: [false]));
     final ctrl = c.read(pagoProControllerProvider.notifier);
     await ctrl.pagar();
 
     final estado = c.read(pagoProControllerProvider);
-    expect(estado.fase, FasePago.pendienteActivacion);
-    expect(estado.mensaje, 'Pago recibido, activando PRO…');
+    expect(estado.fase, FasePago.enRevision);
+    expect(estado.esResultado, isTrue);
+    expect(estado.mensaje, mensajeEnRevision);
+    expect(estado.codigo, 'TIEMPO_AGOTADO');
     expect(esperas.fold(Duration.zero, (a, b) => a + b), const Duration(seconds: 30));
     expect(storage.claves[7], isNotNull, reason: 'la clave sigue hasta confirmar PRO');
 
@@ -154,10 +173,78 @@ void main() {
     expect(pasarela.cobros, 0);
   });
 
-  test('409 PAGO_PENDIENTE: explica qué hacer', () async {
+  test('409 PAGO_PENDIENTE sin orden recuperable: "En revisión" con explicación', () async {
     final c = crear(r: _Repo(errorAlIniciar: const AppException(codigo: 'PAGO_PENDIENTE', mensaje: 'x')));
     await c.read(pagoProControllerProvider.notifier).pagar();
-    expect(c.read(pagoProControllerProvider).mensaje, contains('pago pendiente'));
+    final estado = c.read(pagoProControllerProvider);
+    expect(estado.fase, FasePago.enRevision);
+    expect(estado.mensaje, contains('compra pendiente'));
+    expect(pasarela.cobros, 0);
+  });
+
+  test('409 PAGO_PENDIENTE con la clave perdida: se recupera de /pro/pago-pendiente/ y se reintenta con ella',
+      () async {
+    final r = _Repo(
+      respuestasEstado: [true],
+      errorAlIniciar: const AppException(codigo: 'PAGO_PENDIENTE', mensaje: 'x'),
+      pendiente: _pendiente('clave-del-otro-telefono'),
+    );
+    final c = crear(r: r);
+    await c.read(pagoProControllerProvider.notifier).pagar();
+    expect(r.clavesUsadas.length, 2);
+    expect(r.clavesUsadas.last, 'clave-del-otro-telefono');
+    expect(pasarela.cobros, 1, reason: 'se abre la hoja de Stripe de la MISMA orden');
+    expect(c.read(pagoProControllerProvider).fase, FasePago.activo);
+  });
+
+  test('revisarPendiente guarda la clave recuperada y expone la compra para cancelarla', () async {
+    final r = _Repo(pendiente: _pendiente('clave-recuperada'));
+    final c = crear(r: r);
+    await c.read(pagoProControllerProvider.notifier).revisarPendiente();
+    expect(storage.claves[7], 'clave-recuperada');
+    expect(c.read(pagoProControllerProvider).pendiente?.pago.id, 41);
+  });
+
+  test('cancelar la compra pendiente: POST cancelar, borra la clave y vuelve al resumen', () async {
+    final r = _Repo(pendiente: _pendiente('k-pendiente-1'));
+    final c = crear(r: r);
+    final ctrl = c.read(pagoProControllerProvider.notifier);
+    await ctrl.revisarPendiente();
+    await ctrl.cancelarPendiente();
+    expect(r.cancelados, [41]);
+    expect(storage.claves, isEmpty);
+    final estado = c.read(pagoProControllerProvider);
+    expect(estado.fase, FasePago.inactivo);
+    expect(estado.pendiente, isNull);
+    expect(estado.mensaje, contains('cancelada'));
+  });
+
+  test('409 PAGO_NO_CANCELABLE al cancelar: se comprueba el plan (ya estaba pagado)', () async {
+    final r = _Repo(
+      respuestasEstado: [true],
+      pendiente: _pendiente('k-pendiente-1'),
+      errorAlCancelar: const AppException(codigo: 'PAGO_NO_CANCELABLE', mensaje: 'x'),
+    );
+    final c = crear(r: r);
+    final ctrl = c.read(pagoProControllerProvider.notifier);
+    await ctrl.revisarPendiente();
+    await ctrl.cancelarPendiente();
+    expect(c.read(pagoProControllerProvider).fase, FasePago.activo);
+  });
+
+  test('409 PAGO_REQUIERE_REVISION: "En revisión" sin abrir la hoja', () async {
+    final c = crear(r: _Repo(errorAlIniciar: const AppException(codigo: 'PAGO_REQUIERE_REVISION', mensaje: 'x')));
+    await c.read(pagoProControllerProvider.notifier).pagar();
+    final estado = c.read(pagoProControllerProvider);
+    expect(estado.fase, FasePago.enRevision);
+    expect(estado.mensaje, contains('revisión manual'));
+    expect(pasarela.cobros, 0);
+  });
+
+  test('502 del proveedor: variante de error (Reintentar)', () async {
+    final c = crear(r: _Repo(errorAlIniciar: const AppException(codigo: 'PROVEEDOR_PAGO_NO_DISPONIBLE', mensaje: 'x')));
+    await c.read(pagoProControllerProvider.notifier).pagar();
+    expect(c.read(pagoProControllerProvider).fase, FasePago.error);
   });
 
   test('YA_ES_PRO se trata como éxito', () async {
@@ -173,6 +260,12 @@ void main() {
     expect(c.read(pagoProControllerProvider).fase, FasePago.activo);
   });
 }
+
+PagoPendiente _pendiente(String clave) => PagoPendiente(
+      pago: PagoPro(id: 41, monto: '5.00', moneda: 'USD', estado: 'PENDIENTE', fecha: DateTime.utc(2026, 10, 1)),
+      claveIdempotencia: clave,
+      estadoStripe: 'requires_payment_method',
+    );
 
 class _RepoConFallo extends _Repo {
   _RepoConFallo() : super(respuestasEstado: [true]);

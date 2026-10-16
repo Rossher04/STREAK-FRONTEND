@@ -8,7 +8,9 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:streak_mobile/core/network/server_clock.dart';
 import 'package:streak_mobile/core/theme/streak_theme.dart';
 import 'package:streak_mobile/features/pro/application/pago_pro_controller.dart';
-import 'package:streak_mobile/features/pro/presentation/paywall_contenido.dart';
+import 'package:streak_mobile/features/pro/data/pro_repository.dart';
+import 'package:streak_mobile/features/pro/presentation/pago_pro_screen.dart';
+import 'package:streak_mobile/features/pro/presentation/pro_screen.dart';
 import 'package:streak_mobile/features/quinielas/domain/quiniela_vista.dart';
 import 'package:streak_mobile/features/quinielas/presentation/widgets/tab_pendientes.dart';
 
@@ -126,15 +128,25 @@ void main() {
       handle.dispose();
     });
 
-    testWidgets('Paywall: contraste de texto, etiquetas y tamaño de toque', (tester) async {
+    testWidgets('Plan Pro (22): contraste de texto, etiquetas y tamaño de toque', (tester) async {
+      final handle = tester.ensureSemantics();
+      await montar(tester, const PlanProContenido(estado: EstadoPro(esPro: false, montoCentavos: 500, moneda: 'USD')));
+      await expectLater(tester, meetsGuideline(textContrastGuideline));
+      await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+      await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+      handle.dispose();
+    });
+
+    testWidgets('Pago (23): contraste de texto, etiquetas y tamaño de toque', (tester) async {
       final handle = tester.ensureSemantics();
       await montar(
         tester,
-        PaywallContenido(
+        ResumenPago(
+          plan: const EstadoPro(esPro: false, montoCentavos: 500, moneda: 'USD'),
           estado: EstadoPago.inactivo,
           motivoNoDisponible: null,
           onPagar: () {},
-          onVerificar: () {},
+          onCancelarPendiente: () {},
         ),
       );
       await expectLater(tester, meetsGuideline(textContrastGuideline));

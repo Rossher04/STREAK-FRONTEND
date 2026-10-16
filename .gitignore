@@ -49,5 +49,5 @@ app.*.map.json
 *.keystore
 android/key.properties
 
-# Backend local de las e2e de la fase 3 (BD y media desechables)
+# Backend local de las e2e (BD y media desechables)
 .e2e/

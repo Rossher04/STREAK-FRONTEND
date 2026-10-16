@@ -148,6 +148,21 @@ class AuthController extends Notifier<AuthSession> {
     state = AuthSession(status: AuthStatus.authenticated, user: user);
   }
 
+  /// Elimina la cuenta (DELETE /usuarios/me/) y borra TODO lo local de esa cuenta: tokens, perfil,
+  /// Idempotency-Key del pago PRO y caché Hive. Vuelve al login con un mensaje.
+  Future<void> eliminarCuenta(String password) async {
+    final usuarioId = state.user?.id;
+    await _repo.eliminarCuenta(password);
+    final storage = ref.read(secureStorageProvider);
+    if (usuarioId != null) await storage.clearProIdempotencyKey(usuarioId);
+    await storage.clearSession();
+    await ref.read(cacheStoreProvider).limpiar();
+    state = const AuthSession(
+      status: AuthStatus.unauthenticated,
+      message: 'Tu cuenta se eliminó. Gracias por haber jugado en STREAK.',
+    );
+  }
+
   Future<void> logout() async {
     await _repo.logout();
     await ref.read(cacheStoreProvider).limpiar();

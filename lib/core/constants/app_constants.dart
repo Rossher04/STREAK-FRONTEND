@@ -18,9 +18,7 @@ class AppConstants {
   // (el valor por defecto es un marcador: ver docs/play_store.md).
   static const String correoSoporte = String.fromEnvironment('SUPPORT_EMAIL', defaultValue: '[CORREO_SOPORTE]');
 
-  // Plan Pro (RN-61 a RN-65). El backend cobra STRIPE_PRO_AMOUNT (500 centavos = USD 5.00,
-  // settings.py) y no expone el precio por API, por eso se repite aquí para mostrarlo en el paywall.
-  static const String precioProUsd = '5.00';
+  // Plan Pro (RN-61 a RN-65): el precio y la moneda se leen de GET /pro/estado/ (EstadoPro).
 
   // Clave publicable de Stripe (modo prueba): --dart-define=STRIPE_PUBLISHABLE_KEY=pk_test_...
   static const String stripePublishableKey = String.fromEnvironment('STRIPE_PUBLISHABLE_KEY');

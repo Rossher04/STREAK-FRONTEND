@@ -3,3 +3,4 @@
 # (package:test no permite un exclude_tags por defecto que `-t` pueda anular: ambos se combinan.)
 tags:
   capturas:
+  comparativas:
