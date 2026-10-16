@@ -65,7 +65,7 @@ class PlanProContenido extends StatelessWidget {
           children: [
             Text(estado.importeCorto, key: const ValueKey('precio'), style: StreakText.precio),
             const SizedBox(width: 8),
-            Text(estado.moneda, style: StreakText.tituloGrande.copyWith(color: StreakColors.muted)),
+            Text(estado.moneda, style: StreakText.cuerpo.copyWith(color: StreakColors.muted)),
           ],
         ),
         const SizedBox(height: 8),

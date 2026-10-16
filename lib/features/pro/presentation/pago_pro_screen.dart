@@ -260,7 +260,7 @@ class ResultadoPago extends StatelessWidget {
             Semantics(
               header: true,
               child: Text(titulo, key: const ValueKey('titulo-resultado'), textAlign: TextAlign.center,
-                  style: StreakText.precioResumen),
+                  style: StreakText.tituloGrande),
             ),
             const SizedBox(height: 12),
             Padding(

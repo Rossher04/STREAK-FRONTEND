@@ -34,7 +34,7 @@ class ListaBeneficios extends StatelessWidget {
       children: [
         for (final b in beneficiosPro(estado))
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(vertical: 6),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
