@@ -1,18 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:streak_mobile/core/widgets/streak_icon.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/app_exception.dart';
+import '../../../../core/network/server_clock.dart';
 import '../../../../core/theme/streak_theme.dart';
 import '../../../../core/widgets/barra_inferior.dart';
-import '../../../auth/presentation/widgets/panel_lateral.dart';
+import '../../../../core/widgets/botones.dart';
+import '../../../../core/widgets/chips.dart';
+import '../../../../core/widgets/estructura.dart';
+import '../../../../core/widgets/streak_icon.dart';
 import '../../../auth/application/auth_controller.dart';
+import '../../../auth/presentation/widgets/panel_lateral.dart';
 import '../../application/quinielas_providers.dart';
 import '../../domain/models.dart';
-import '../widgets/quiniela_widgets.dart';
+import '../../domain/resumen_inicio.dart';
+import '../widgets/quiniela_widgets.dart' show horaLocal;
 
-/// Inicio (07/08): avatar que abre el panel lateral, wordmark y barra inferior.
+/// Pantallas 07/08 · Inicio: avatar que abre el panel lateral, wordmark, "MIS QUINIELAS" y barra inferior.
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -32,6 +38,8 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
+/// Lista de quinielas con sus estados (cargando con esqueleto, vacío, error y sin conexión, RN-74).
+/// [historial] = true: solo torneos finalizados (lo usa la pantalla Historial).
 class ListaQuinielas extends ConsumerWidget {
   const ListaQuinielas({super.key, required this.historial});
 
@@ -41,9 +49,7 @@ class ListaQuinielas extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final provider = historial ? historialProvider : misQuinielasProvider;
     final datos = ref.watch(provider);
-    final torneos = {
-      for (final t in ref.watch(torneosProvider).valueOrNull ?? const <Torneo>[]) t.id: t,
-    };
+    final torneos = {for (final t in ref.watch(torneosProvider).valueOrNull ?? const <Torneo>[]) t.id: t};
 
     Future<void> refrescar() async {
       ref.invalidate(torneosProvider);
@@ -53,103 +59,156 @@ class ListaQuinielas extends ConsumerWidget {
       await ref.read(provider.future).then((_) {}, onError: (_) {});
     }
 
-    final lista = RefreshIndicator(
-      onRefresh: refrescar,
-      child: datos.when(
-        loading: () => ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          children: const [
-            SizedBox(height: 160),
-            Center(child: CircularProgressIndicator()),
-          ],
-        ),
-        error: (e, _) => _Mensaje(
-          icono: Icons.cloud_off,
-          texto: e is AppException ? e.mensaje : 'No se pudieron cargar tus quinielas.',
-          acciones: [
-            ElevatedButton(onPressed: () => ref.invalidate(provider), child: const Text('REINTENTAR')),
-          ],
-        ),
-        data: (listado) {
-          final items = listado.items;
-          if (items.isEmpty) {
-            return historial
-                ? const _Mensaje(
-                    icono: Icons.history,
-                    texto: 'Aquí aparecerán tus quinielas cuando su torneo finalice (solo lectura, RN-33).',
-                  )
-                : _Mensaje(
-                    icono: Icons.emoji_events_outlined,
-                    texto: 'Aún no estás en ninguna quiniela.',
-                    acciones: [
-                      ElevatedButton(
-                        onPressed: () => context.push('/quinielas/crear'),
-                        child: const Text('CREAR QUINIELA'),
-                      ),
-                      OutlinedButton(
-                        onPressed: () => context.push('/quinielas/unirse'),
-                        child: const Text('UNIRME CON CÓDIGO'),
-                      ),
-                    ],
-                  );
-          }
-          return ListView.builder(
+    Widget lista(List<Widget> hijos) => RefreshIndicator(
+          onRefresh: refrescar,
+          child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.only(top: 8, bottom: 88),
-            itemCount: items.length,
-            itemBuilder: (context, i) {
-              final q = items[i];
-              final torneo = torneos[q.torneoId];
-              return Card(
-                child: ListTile(
-                  title: Text(q.nombre, style: const TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: Text(
-                    '${torneo?.nombre ?? 'Torneo'}\nCódigo ${q.codigoUnico} · máx. ${q.maxParticipantes}',
-                  ),
-                  isThreeLine: true,
-                  trailing: historial
-                      ? const Icon(Icons.lock_outline, color: StreakColors.muted)
-                      : const Icon(Icons.chevron_right),
-                  onTap: () => context.push('/quinielas/${q.id}'),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
+            padding: const EdgeInsets.fromLTRB(StreakSize.screenPadding, 0, StreakSize.screenPadding, 24),
+            children: hijos,
+          ),
+        );
 
-    final offlineDesde = datos.valueOrNull?.offlineDesde;
-    if (offlineDesde == null) return lista;
-    return Column(
-      children: [
-        BannerAviso(icono: StreakIcons.retry, texto: 'Sin conexión · datos de ${horaLocal(offlineDesde)}'),
-        Expanded(child: lista),
-      ],
+    return datos.when(
+      skipLoadingOnRefresh: true,
+      skipLoadingOnReload: true,
+      loading: () => lista([
+        if (!historial) const EncabezadoSeccion('Mis quinielas') else const SizedBox(height: 12),
+        const EsqueletoTarjetas(),
+      ]),
+      error: (e, _) {
+        final ex = e is AppException ? e : null;
+        return EstadoError(
+          mensaje: ex?.mensaje ?? 'No se pudieron cargar tus quinielas.',
+          sinConexion: ex?.codigo == 'NETWORK_ERROR' || ex?.codigo == 'TIMEOUT_ERROR',
+          onReintentar: () => ref.invalidate(provider),
+        );
+      },
+      data: (listado) {
+        // En Inicio solo las de torneos no finalizados (las finalizadas viven en Historial). Si los torneos aún no
+        // cargaron, se muestran todas.
+        final items = historial
+            ? listado.items
+            : listado.items.where((q) => torneos[q.torneoId]?.esFinalizado != true).toList();
+        final offline = listado.offlineDesde;
+        final aviso = offline == null
+            ? null
+            : BannerAviso(icono: StreakIcons.retry, texto: 'Sin conexión · datos de ${horaLocal(offline)}');
+        if (items.isEmpty) {
+          return lista([
+            if (aviso != null) ...[const SizedBox(height: 12), aviso],
+            const SizedBox(height: 120),
+            historial
+                ? const EstadoVacio(
+                    titulo: 'Aún no hay historial',
+                    texto: 'Aquí aparecerán tus quinielas cuando su torneo finalice.',
+                  )
+                : EstadoVacio(
+                    titulo: 'Aún no tienes quinielas',
+                    texto: 'Crea una con tus amigos o únete con un código.',
+                    acciones: [
+                      BotonPrimario(texto: 'Crear quiniela', onPressed: () => context.push('/quinielas/crear')),
+                      BotonSecundario(texto: 'Unirme con código', onPressed: () => context.push('/quinielas/unirse')),
+                    ],
+                  ),
+          ]);
+        }
+        return lista([
+          if (aviso != null) ...[const SizedBox(height: 12), aviso],
+          if (!historial) const EncabezadoSeccion('Mis quinielas') else const SizedBox(height: 12),
+          for (final q in items)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: TarjetaQuiniela(
+                quiniela: q,
+                torneo: torneos[q.torneoId],
+                historial: historial,
+                offline: offline != null,
+              ),
+            ),
+        ]);
+      },
     );
   }
 }
 
-class _Mensaje extends StatelessWidget {
-  const _Mensaje({required this.icono, required this.texto, this.acciones = const []});
+/// Tarjeta de quiniela (07 y 21): nombre, chip de estado, "torneo · N participantes", PUESTO y PUNTOS.
+class TarjetaQuiniela extends ConsumerWidget {
+  const TarjetaQuiniela({
+    super.key,
+    required this.quiniela,
+    required this.torneo,
+    required this.historial,
+    this.offline = false,
+  });
 
-  final IconData icono;
-  final String texto;
-  final List<Widget> acciones;
+  final Quiniela quiniela;
+  final Torneo? torneo;
+  final bool historial;
+  final bool offline;
 
   @override
-  Widget build(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(32),
-      children: [
-        const SizedBox(height: 80),
-        Icon(icono, size: 56, color: StreakColors.muted),
-        const SizedBox(height: 16),
-        Text(texto, textAlign: TextAlign.center, style: const TextStyle(color: StreakColors.text)),
-        const SizedBox(height: 24),
-        for (final a in acciones) Padding(padding: const EdgeInsets.only(bottom: 12), child: a),
-      ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    final q = quiniela;
+    final torneoNombre = q.torneoNombre ?? torneo?.nombre;
+    final inscritos = q.cantidadInscritos;
+    final meta = [
+      if (torneoNombre != null && torneoNombre.isNotEmpty) torneoNombre,
+      if (inscritos != null) '$inscritos ${inscritos == 1 ? 'participante' : 'participantes'}',
+    ].join(' · ');
+
+    Widget? chip;
+    if (historial || torneo?.esFinalizado == true) {
+      chip = const ChipStreak('Finalizado', grande: true);
+    } else if (!offline && torneo != null) {
+      final resumen = ref.watch(resumenPartidosProvider(q.id)).valueOrNull;
+      final c = chipInicio(
+        torneoActivo: torneo!.esActivo,
+        partidos: resumen ?? const [],
+        ahoraServidor: ref.watch(serverClockProvider).ahora(),
+      );
+      chip = switch (c.tipo) {
+        TipoChipInicio.ninguno => null,
+        TipoChipInicio.enJuego => ChipStreak(c.texto, variante: VarianteChip.live, grande: true),
+        TipoChipInicio.cierraPronto => ChipStreak(c.texto, variante: VarianteChip.warn, grande: true),
+      };
+    }
+
+    final puesto = q.miPosicion == null ? '—' : '${q.miPosicion}.º';
+    final puntos = q.misPuntos == null ? '—' : '${q.misPuntos}';
+    return Semantics(
+      button: true,
+      label: '${q.nombre}. ${meta.isEmpty ? '' : '$meta. '}Puesto $puesto, $puntos puntos',
+      excludeSemantics: true,
+      child: TarjetaStreak(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+        onTap: () => context.push('/quinielas/${q.id}'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(q.nombre, maxLines: 2, overflow: TextOverflow.ellipsis, style: StreakText.tituloTarjeta),
+                ),
+                if (chip != null) ...[const SizedBox(width: 8), chip],
+              ],
+            ),
+            if (meta.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(meta, style: StreakText.pequeno),
+            ],
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                DatoCifra(etiqueta: historial ? 'Puesto final' : 'Puesto', valor: puesto),
+                const SizedBox(width: 28),
+                DatoCifra(etiqueta: 'Puntos', valor: puntos, puntos: true),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

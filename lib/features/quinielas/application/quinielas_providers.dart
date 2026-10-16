@@ -5,6 +5,7 @@ import '../../auth/application/auth_controller.dart';
 import '../data/quinielas_repository.dart';
 import '../domain/models.dart';
 import '../domain/quiniela_vista.dart';
+import '../domain/resumen_inicio.dart';
 
 final quinielasRepositoryProvider = Provider<QuinielasRepository>((ref) {
   return QuinielasRepository(ref.watch(dioProvider), ref.watch(cacheStoreProvider));
@@ -55,4 +56,10 @@ final partidoDetalleProvider =
 final participanteDetalleProvider =
     FutureProvider.autoDispose.family<ParticipanteDetalle, ({int quinielaId, int usuarioId})>((ref, k) {
   return ref.watch(quinielasRepositoryProvider).participanteDetalle(k.quinielaId, k.usuarioId);
+});
+
+/// Partidos resumidos de una quiniela para el chip del Inicio (07). Si falla, la tarjeta simplemente no muestra
+/// "Cierra en…" (no bloquea el Inicio).
+final resumenPartidosProvider = FutureProvider.autoDispose.family<List<PartidoResumen>, int>((ref, id) {
+  return ref.watch(quinielasRepositoryProvider).resumenPartidos(id);
 });

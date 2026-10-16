@@ -4,6 +4,7 @@ import '../../../core/errors/app_exception.dart';
 import '../../../core/storage/cache_store.dart';
 import '../domain/models.dart';
 import '../domain/quiniela_vista.dart';
+import '../domain/resumen_inicio.dart';
 
 class QuinielasRepository {
   QuinielasRepository(this._dio, this._cache);
@@ -158,5 +159,11 @@ class QuinielasRepository {
   Future<ParticipanteDetalle> participanteDetalle(int quinielaId, int usuarioId) => _call(() async {
         final data = await _get(ApiConstants.participanteDetalle(quinielaId, usuarioId));
         return ParticipanteDetalle.fromJson(data as Map<String, dynamic>);
+      });
+
+  /// Partidos de una quiniela reducidos a lo que necesita el chip del Inicio (estado, cierre y si ya pronostiqué).
+  Future<List<PartidoResumen>> resumenPartidos(int quinielaId) => _call(() async {
+        final data = await _get(ApiConstants.quinielaPartidos(quinielaId));
+        return _lista(data).map(PartidoResumen.fromJson).toList();
       });
 }

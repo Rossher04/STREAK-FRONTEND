@@ -232,6 +232,7 @@ void main() {
           torneosProvider.overrideWith((ref) async => [
                 const Torneo(id: 1, nombre: 'Liga', formato: 'LIGA', temporada: '2026', estado: 'ACTIVO'),
               ]),
+          resumenPartidosProvider.overrideWith((ref, id) async => const []),
         ],
         child: const MaterialApp(home: HomeScreen()),
       ));
@@ -265,7 +266,7 @@ void main() {
       expect(find.text('Sin conexión · datos de ${horaLocal(desde)}'), findsOneWidget);
       final boton = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
       expect(boton.onPressed, isNull);
-      expect(find.text('SIN CONEXIÓN'), findsOneWidget);
+      expect(find.text('Sin conexión'), findsOneWidget);
     });
   });
 }

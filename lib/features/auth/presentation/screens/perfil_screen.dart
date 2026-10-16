@@ -1,19 +1,22 @@
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:streak_mobile/core/widgets/streak_icon.dart';
 import 'package:image_picker/image_picker.dart';
+
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/streak_theme.dart';
 import '../../../../core/widgets/avatar_usuario.dart';
-import '../../../quinielas/presentation/widgets/quiniela_widgets.dart';
+import '../../../../core/widgets/botones.dart';
+import '../../../../core/widgets/campo_texto.dart';
+import '../../../../core/widgets/estructura.dart';
+import '../../../../core/widgets/streak_icon.dart';
+import '../../../quinielas/presentation/widgets/quiniela_widgets.dart' show horaLocal;
 import '../../application/auth_controller.dart';
 import '../../data/auth_repository.dart';
 import '../widgets/eliminar_cuenta_dialogo.dart';
 
-/// B2: datos reales de /usuarios/me/. Usuario y correo son de solo lectura;
-/// la contraseña no se toca desde aquí.
+/// Pantalla 10 · Mi perfil (B2): datos reales de `GET /usuarios/me/`; se guardan con `PATCH` (multipart si hay foto).
+/// El usuario es de solo lectura (RN-09). La fecha de nacimiento aún no existe en la API: TODO(backend #18).
 class PerfilScreen extends ConsumerStatefulWidget {
   const PerfilScreen({super.key});
 
@@ -22,54 +25,81 @@ class PerfilScreen extends ConsumerStatefulWidget {
 }
 
 class _PerfilScreenState extends ConsumerState<PerfilScreen> {
-  final _first = TextEditingController();
-  final _last = TextEditingController();
-  final _phone = TextEditingController();
+  final _nombre = TextEditingController();
+  final _apellidos = TextEditingController();
+  final _telefono = TextEditingController();
   FotoPerfil? _fotoNueva;
-  Uint8List? _fotoPreview;
+  Uint8List? _vistaPrevia;
   bool _guardando = false;
+  AppException? _error;
 
   @override
   void initState() {
     super.initState();
     final user = ref.read(authControllerProvider).user;
-    _first.text = user?.firstName ?? '';
-    _last.text = user?.lastName ?? '';
-    _phone.text = user?.telefono ?? '';
+    _nombre.text = user?.firstName ?? '';
+    _apellidos.text = user?.lastName ?? '';
+    _telefono.text = user?.telefono ?? '';
   }
 
   @override
   void dispose() {
-    _first.dispose();
-    _last.dispose();
-    _phone.dispose();
+    _nombre.dispose();
+    _apellidos.dispose();
+    _telefono.dispose();
     super.dispose();
   }
 
-  Future<void> _pickPhoto() async {
-    final file = await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 70);
-    if (file == null) return;
-    final bytes = await file.readAsBytes();
+  Future<void> _elegirFoto() async {
+    final origen = await mostrarHoja<ImageSource>(
+      context,
+      titulo: 'Foto de perfil',
+      contenido: (ctx) => [
+        BotonSecundario(
+          texto: 'Tomar foto',
+          icono: StreakIcons.camera,
+          onPressed: () => Navigator.pop(ctx, ImageSource.camera),
+        ),
+        const SizedBox(height: 12),
+        BotonSecundario(
+          texto: 'Elegir de la galería',
+          icono: StreakIcons.user,
+          onPressed: () => Navigator.pop(ctx, ImageSource.gallery),
+        ),
+      ],
+    );
+    if (origen == null) return;
+    final XFile? archivo;
+    try {
+      archivo = await ImagePicker().pickImage(source: origen, imageQuality: 70, maxWidth: 1024);
+    } on Object {
+      if (mounted) avisar(context, 'No se pudo abrir la ${origen == ImageSource.camera ? 'cámara' : 'galería'}.');
+      return;
+    }
+    if (archivo == null) return;
+    final bytes = await archivo.readAsBytes();
     setState(() {
-      _fotoNueva = FotoPerfil(bytes: bytes, nombre: file.name);
-      _fotoPreview = bytes;
+      _fotoNueva = FotoPerfil(bytes: bytes, nombre: archivo!.name);
+      _vistaPrevia = bytes;
     });
   }
 
-  Future<void> _save() async {
-    setState(() => _guardando = true);
-    final messenger = ScaffoldMessenger.of(context);
+  Future<void> _guardar() async {
+    setState(() {
+      _guardando = true;
+      _error = null;
+    });
     try {
       await ref.read(authControllerProvider.notifier).actualizarPerfil(
-            firstName: _first.text.trim(),
-            lastName: _last.text.trim(),
-            telefono: _phone.text.trim(),
+            firstName: _nombre.text.trim(),
+            lastName: _apellidos.text.trim(),
+            telefono: _telefono.text.trim(),
             foto: _fotoNueva,
           );
       _fotoNueva = null;
-      messenger.showSnackBar(const SnackBar(content: Text('Perfil actualizado.')));
+      if (mounted) avisar(context, 'Perfil actualizado.');
     } on AppException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.mensaje)));
+      if (mounted) setState(() => _error = e);
     } finally {
       if (mounted) setState(() => _guardando = false);
     }
@@ -77,94 +107,162 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authControllerProvider).user;
-    final fotoUrl = user?.fotoUrl;
-    final offlineDesde = ref.watch(authControllerProvider.select((s) => s.offlineDesde));
+    final sesion = ref.watch(authControllerProvider);
+    final user = sesion.user;
+    final offlineDesde = sesion.offlineDesde;
+    final e = _error;
+    final conocidos = {'first_name', 'last_name', 'telefono', 'foto'};
+    final general = e != null && !e.campos.keys.any(conocidos.contains) ? e.mensaje : null;
     return Scaffold(
       appBar: AppBar(title: const Text('Mi perfil')),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          if (offlineDesde != null) ...[
-            BannerAviso(icono: StreakIcons.retry, texto: 'Sin conexión · datos de ${horaLocal(offlineDesde)}',
-            ),
-            const SizedBox(height: 16),
-          ],
-          Center(
-            child: Semantics(
-              button: true,
-              label: 'Cambiar foto de perfil',
-              excludeSemantics: true,
-              child: GestureDetector(
-                onTap: _pickPhoto,
-                child: _fotoPreview != null
-                    ? CircleAvatar(
-                        radius: 44,
-                        backgroundColor: StreakColors.surface2,
-                        backgroundImage: MemoryImage(_fotoPreview!),
-                      )
-                    : (fotoUrl == null
-                        ? const CircleAvatar(
-                            radius: 44,
-                            backgroundColor: StreakColors.surface2,
-                            child: Icon(Icons.camera_alt, color: StreakColors.brand, size: 32),
-                          )
-                        // Si la imagen del servidor no carga (404) se muestra la inicial.
-                        : AvatarUsuario(nombre: user?.displayName ?? '', fotoUrl: fotoUrl, diametro: StreakSize.fotoPerfil)),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(StreakSize.screenPadding, 8, StreakSize.screenPadding, 24),
+          children: [
+            if (offlineDesde != null) ...[
+              BannerAviso(icono: StreakIcons.retry, texto: 'Sin conexión · datos de ${horaLocal(offlineDesde)}'),
+              const SizedBox(height: 16),
+            ],
+            Center(
+              child: _FotoPerfil(
+                vistaPrevia: _vistaPrevia,
+                fotoUrl: user?.fotoUrl,
+                nombre: user?.displayName ?? '',
+                onTap: offlineDesde != null ? null : _elegirFoto,
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          const Text('Toca para cambiar foto',
-              textAlign: TextAlign.center, style: TextStyle(color: StreakColors.text)),
-          const SizedBox(height: 20),
-          TextFormField(
-            key: ValueKey('username-${user?.username}'),
-            initialValue: user?.username ?? '',
-            enabled: false,
-            decoration: const InputDecoration(labelText: 'Usuario (no editable)'),
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            key: ValueKey('email-${user?.email}'),
-            initialValue: user?.email ?? '',
-            enabled: false,
-            decoration: const InputDecoration(labelText: 'Correo (no editable)'),
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _first,
-            decoration: const InputDecoration(labelText: 'Nombre'),
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _last,
-            decoration: const InputDecoration(labelText: 'Apellidos'),
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _phone,
-            keyboardType: TextInputType.phone,
-            maxLength: 20,
-            decoration: const InputDecoration(labelText: 'Teléfono'),
-          ),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: (_guardando || offlineDesde != null) ? null : _save,
-            child: Text(_guardando
-                ? 'GUARDANDO…'
-                : (offlineDesde != null ? 'SIN CONEXIÓN' : 'GUARDAR CAMBIOS')),
-          ),
-          const SizedBox(height: 24),
-          const Divider(),
-          TextButton.icon(
-            onPressed: () => mostrarEliminarCuenta(context),
-            icon: const Icon(Icons.delete_outline, color: StreakColors.orangeText),
-            label: const Text('Eliminar mi cuenta', style: TextStyle(color: StreakColors.orangeText)),
-          ),
-        ],
+            if (e?.campo('foto') != null) ...[
+              const SizedBox(height: 8),
+              Text(e!.campo('foto')!, textAlign: TextAlign.center, style: StreakText.error),
+            ],
+            const SizedBox(height: 22),
+            if (general != null) ...[BannerAviso(texto: general), const SizedBox(height: 16)],
+            CampoTexto(
+              key: ValueKey('usuario-${user?.username}'),
+              etiqueta: 'Usuario',
+              initialValue: user?.username ?? '',
+              soloLectura: true,
+            ),
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: CampoTexto(
+                    etiqueta: 'Nombre',
+                    controller: _nombre,
+                    errorServidor: e?.campo('first_name'),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: CampoTexto(
+                    etiqueta: 'Apellidos',
+                    controller: _apellidos,
+                    errorServidor: e?.campo('last_name'),
+                    textCapitalization: TextCapitalization.words,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            CampoTexto(
+              etiqueta: 'Teléfono',
+              controller: _telefono,
+              keyboardType: TextInputType.phone,
+              errorServidor: e?.campo('telefono'),
+            ),
+            const SizedBox(height: 16),
+            // TODO(backend #18): la API no tiene fecha_nacimiento; se muestra deshabilitada y no se envía.
+            const CampoTexto(
+              etiqueta: 'Fecha de nacimiento',
+              hint: 'dd/mm/aaaa',
+              habilitado: false,
+              sufijo: StreakIcons.calendar,
+              ayuda: 'Aún no disponible',
+            ),
+            const SizedBox(height: 24),
+            BotonPrimario(
+              texto: offlineDesde != null ? 'Sin conexión' : 'Guardar cambios',
+              cargando: _guardando,
+              onPressed: offlineDesde != null ? null : _guardar,
+            ),
+            const SizedBox(height: 16),
+            Center(
+              child: TextButton(
+                onPressed: () => mostrarEliminarCuenta(context),
+                child: Text('Eliminar mi cuenta', style: StreakText.enlace.copyWith(color: StreakColors.orangeText)),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
+/// Foto de 92 px con la insignia de cámara; sin foto muestra el ícono de usuario (o las iniciales si la imagen falla).
+class _FotoPerfil extends StatelessWidget {
+  const _FotoPerfil({required this.vistaPrevia, required this.fotoUrl, required this.nombre, required this.onTap});
+
+  final Uint8List? vistaPrevia;
+  final String? fotoUrl;
+  final String nombre;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    const lado = StreakSize.fotoPerfil;
+    final Widget imagen;
+    if (vistaPrevia != null) {
+      imagen = ClipOval(child: Image.memory(vistaPrevia!, width: lado, height: lado, fit: BoxFit.cover));
+    } else if (fotoUrl != null && fotoUrl!.isNotEmpty) {
+      imagen = AvatarUsuario(nombre: nombre, fotoUrl: fotoUrl, diametro: lado);
+    } else {
+      imagen = Container(
+        width: lado,
+        height: lado,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: StreakColors.surface2,
+          shape: BoxShape.circle,
+          border: Border.all(color: StreakColors.line),
+        ),
+        child: const StreakIcon(StreakIcons.user, size: 40, color: StreakColors.muted),
+      );
+    }
+    return Semantics(
+      button: true,
+      label: 'Cambiar foto de perfil',
+      excludeSemantics: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: SizedBox(
+          width: lado + 4,
+          height: lado + 4,
+          child: Stack(
+            children: [
+              imagen,
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  width: 32,
+                  height: 32,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: StreakColors.surface2,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: StreakColors.bg, width: 2),
+                  ),
+                  child: const StreakIcon(StreakIcons.camera, size: StreakSize.iconChip, color: StreakColors.text),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
