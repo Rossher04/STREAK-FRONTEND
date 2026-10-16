@@ -64,3 +64,47 @@ class Quiniela {
   final String codigoUnico;
   final int maxParticipantes;
 }
+
+/// Respuesta de POST /quinielas/validar-codigo/: vista previa de la quiniela antes de unirse
+/// (no inscribe). Si `requiereConfirmacion`, hay que avisar del ingreso tardío (RN-31) y enviar
+/// `aceptar_ingreso_tardio: true` a /quinielas/unirse/.
+class ValidacionCodigo {
+  const ValidacionCodigo({
+    required this.quinielaId,
+    required this.nombre,
+    required this.torneoNombre,
+    required this.cantidadInscritos,
+    required this.maxParticipantes,
+    required this.ingresoTardio,
+    required this.requiereConfirmacion,
+    required this.partidosCerrados,
+    required this.penalizacionPuntos,
+    required this.advertencia,
+  });
+
+  factory ValidacionCodigo.fromJson(Map<String, dynamic> json) => ValidacionCodigo(
+        quinielaId: json['quiniela_id'] as int,
+        nombre: json['nombre'] as String? ?? '',
+        torneoNombre: json['torneo_nombre'] as String? ?? '',
+        cantidadInscritos: json['cantidad_inscritos'] as int? ?? 0,
+        maxParticipantes: json['max_participantes'] as int? ?? 0,
+        ingresoTardio: json['ingreso_tardio'] as bool? ?? false,
+        requiereConfirmacion: json['requiere_confirmacion'] as bool? ?? false,
+        partidosCerrados: json['partidos_cerrados'] as int? ?? 0,
+        penalizacionPuntos: json['penalizacion_puntos'] as int? ?? 0,
+        advertencia: json['advertencia'] as String? ?? '',
+      );
+
+  final int quinielaId;
+  final String nombre;
+  final String torneoNombre;
+  final int cantidadInscritos;
+  final int maxParticipantes;
+  final bool ingresoTardio;
+  final bool requiereConfirmacion;
+  final int partidosCerrados;
+
+  /// Siempre 0 en el backend actual: no se descuentan puntos por entrar tarde.
+  final int penalizacionPuntos;
+  final String advertencia;
+}

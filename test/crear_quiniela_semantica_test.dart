@@ -35,18 +35,18 @@ void main() {
     final torneo = tester.getSemantics(find.byType(DropdownButtonFormField<int>));
     expect(torneo.label, contains('Torneo'));
     expect(torneo.label, isNot(contains('Participantes')), reason: 'antes se leía junto con el deslizador');
-    expect(torneo.label, isNot(contains('CREAR')));
+    expect(torneo.label, isNot(contains('Crear')));
 
-    final participantes = tester.getSemantics(find.text('Participantes: 12 (mín. 2, máx. 50)'));
+    final participantes = tester.getSemantics(find.byKey(const Key('crear.maximo')));
     expect(participantes.label, contains('Participantes: 12'));
     expect(participantes.label, isNot(contains('Torneo')));
 
     final deslizador = tester.getSemantics(find.byType(Slider));
     expect(deslizador.label, isNot(contains('Torneo')));
-    expect(deslizador.value, isNotEmpty);
+    expect(deslizador.value, '12 participantes');
 
-    final boton = tester.getSemantics(find.text('CREAR Y VER CÓDIGO'));
-    expect(boton.label, 'CREAR Y VER CÓDIGO');
+    final boton = tester.getSemantics(find.byType(ElevatedButton));
+    expect(boton.label, contains('Crear quiniela'));
 
     // Son nodos diferentes.
     expect({torneo.id, participantes.id, deslizador.id, boton.id}, hasLength(4));
