@@ -13,6 +13,7 @@ import '../../features/auth/presentation/screens/registro_screen.dart';
 import '../../features/auth/presentation/screens/restablecer_password_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/pro/presentation/estadisticas_screen.dart';
+import '../../features/pro/presentation/pago_pro_screen.dart';
 import '../../features/pro/presentation/pro_screen.dart';
 import '../../features/quinielas/presentation/screens/codigo_quiniela_screen.dart';
 import '../../features/quinielas/presentation/screens/crear_quiniela_screen.dart';
@@ -106,6 +107,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             QuinielaActivaScreen(quinielaId: int.parse(state.pathParameters['id']!)),
       ),
       GoRoute(path: '/pro', name: 'pro', builder: (context, state) => const ProScreen()),
+      GoRoute(path: rutaPagoPro, name: 'pago_pro', builder: (context, state) => const PagoProScreen()),
       GoRoute(
         path: '/quinielas/:id/estadisticas',
         name: 'estadisticas',

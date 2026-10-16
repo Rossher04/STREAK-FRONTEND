@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:streak_mobile/core/widgets/streak_icon.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/streak_theme.dart';
+import '../../../core/widgets/botones.dart';
 import '../../../core/widgets/icono_pro.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../quinielas/application/quinielas_providers.dart';
@@ -34,7 +35,7 @@ class EstadisticasScreen extends ConsumerWidget {
                 const SizedBox(height: 16),
                 const Text('Las estadísticas avanzadas son parte del plan PRO.', textAlign: TextAlign.center),
                 const SizedBox(height: 16),
-                ElevatedButton(onPressed: () => context.push('/pro'), child: const Text('VER PLAN PRO')),
+                BotonPrimario(texto: 'Ver Plan Pro', onPressed: () => context.push('/pro')),
               ],
             ),
           ),
@@ -103,9 +104,9 @@ class _Contenido extends StatelessWidget {
                   ' (${dif! >= 0 ? '+' : ''}${dif.toStringAsFixed(1)})',
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Solo cuentan los partidos finalizados. Un partido sin pronóstico vale 0 y rompe la racha.',
-          style: TextStyle(color: StreakColors.text, fontSize: 12),
+          style: StreakText.etiqueta.copyWith(color: StreakColors.text),
         ),
       ],
     );
@@ -133,13 +134,13 @@ class _Dato extends StatelessWidget {
                 children: [
                   Text(titulo, style: const TextStyle(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 4),
-                  Text(detalle, style: const TextStyle(color: StreakColors.text, fontSize: 13)),
+                  Text(detalle, style: StreakText.pequeno.copyWith(color: StreakColors.text)),
                 ],
               ),
             ),
             Text(valor,
                 key: clave,
-                style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: StreakColors.cream)),
+                style: StreakText.cifraGrande),
           ],
         ),
       ),
