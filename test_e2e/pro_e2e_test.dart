@@ -7,6 +7,7 @@ import 'package:streak_mobile/features/pro/application/pago_pro_controller.dart'
 import 'package:streak_mobile/features/pro/domain/pro_reglas.dart';
 import 'package:streak_mobile/features/quinielas/application/quinielas_providers.dart';
 
+import 'support/admin_django.dart';
 import 'support/e2e_support.dart';
 
 void main() {
@@ -50,10 +51,59 @@ void main() {
     await ctrl.pagar();
     final estado = contenedor.read(pagoProControllerProvider);
     expect(estado.fase, FasePago.error);
-    expect(estado.mensaje, 'Los pagos no están disponibles por ahora. Inténtalo más tarde.');
+    expect(estado.mensaje, mensajePago(const AppException(codigo: 'PAGOS_NO_CONFIGURADOS', mensaje: '')));
     // La clave de idempotencia queda guardada para el próximo intento.
     final id = app.sesion.user!.id;
     expect(await app.storage.getProIdempotencyKey(id), isNotNull);
+  });
+
+  test('GET /pro/estado/: importe, moneda y topes del plan (sustituyen a la constante de la app)', () async {
+    await app.registrarNuevo('precio');
+    final e = await app.container.read(estadoProProvider.future);
+    expect(e.esPro, isFalse);
+    expect(e.montoCentavos, 500);
+    expect(e.moneda, 'USD');
+    expect(e.importeConMoneda, r'$5.00 USD');
+    expect(e.pagoUnico, isTrue);
+    expect(e.maxParticipantes, 100);
+    expect(e.maxParticipantesGratis, 50);
+  });
+
+  test('GET /pro/pago-pendiente/ sin compras: pago null; revisarPendiente no cambia nada', () async {
+    await app.registrarNuevo('sinpendiente');
+    expect(await app.container.read(proRepositoryProvider).pagoPendiente(), isNull);
+    app.container.listen(pagoProControllerProvider, (_, __) {});
+    await app.container.read(pagoProControllerProvider.notifier).revisarPendiente();
+    expect(app.container.read(pagoProControllerProvider).pendiente, isNull);
+    expect(await app.storage.getProIdempotencyKey(app.sesion.user!.id), isNull);
+  });
+
+  test('con una compra pendiente y Stripe sin configurar: pago-pendiente y cancelar dan 503; '
+      'el historial la lista como PENDIENTE', () async {
+    final u = await app.registrarNuevo('pendiente');
+    await adminDjango(['pago-pendiente', u]);
+    final repo = app.container.read(proRepositoryProvider);
+    final pagos = await repo.pagos();
+    expect(pagos.single.estado, 'PENDIENTE');
+    expect(pagos.single.monto, '5.00');
+    await expectLater(repo.pagoPendiente(),
+        throwsA(isA<AppException>().having((e) => e.codigo, 'codigo', 'PAGOS_NO_CONFIGURADOS')));
+    await expectLater(repo.cancelarPago(pagos.single.id),
+        throwsA(isA<AppException>().having((e) => e.codigo, 'codigo', 'PAGOS_NO_CONFIGURADOS')));
+    // La pantalla de pago no se rompe: revisarPendiente ignora el 503 y "Pagar" muestra el error claro.
+    app.container.listen(pagoProControllerProvider, (_, __) {});
+    final ctrl = app.container.read(pagoProControllerProvider.notifier);
+    await ctrl.revisarPendiente();
+    await ctrl.pagar();
+    final estado = app.container.read(pagoProControllerProvider);
+    expect(estado.fase, FasePago.error);
+    expect(estado.codigo, 'PAGOS_NO_CONFIGURADOS');
+  });
+
+  test('POST /pro/pagos/{id}/cancelar/ de un pago ajeno o inexistente: 404', () async {
+    await app.registrarNuevo('ajeno');
+    await expectLater(app.container.read(proRepositoryProvider).cancelarPago(999999),
+        throwsA(isA<AppException>().having((e) => e.codigo, 'codigo', 'NO_ENCONTRADO')));
   });
 
   test('estadísticas PRO con datos reales de la quiniela B5 (ana)', () async {

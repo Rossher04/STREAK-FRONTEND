@@ -48,3 +48,16 @@ El pago completo se prueba a mano en un teléfono/emulador Android:
    PaymentSheet (mensaje "Pago cancelado" y la **misma** Idempotency-Key en el reintento), apagar el webhook
    (tras ~30 s: "Pago recibido, activando PRO…" y botón "COMPROBAR DE NUEVO").
 6. Un pago de prueba deja al usuario como PRO de verdad en esa base de datos: usa usuarios de prueba.
+
+## Backend propio en otro puerto (fases 6 y 7)
+
+Para no chocar con otro backend local, `admin_django.dart` acepta `STREAK_BACKEND_DIR`, `STREAK_E2E_DB` y
+`STREAK_E2E_MEDIA`. La corrida de las fases 6-7 usó `.e2e/fase67.sqlite3` (ignorado por git) en
+`127.0.0.1:8015`:
+
+```
+flutter test test_e2e/pro_e2e_test.dart test_e2e/eliminar_cuenta_e2e_test.dart --dart-define=API_BASE_URL=http://127.0.0.1:8015/api -j 1
+```
+
+`admin.py pago-pendiente <usuario>` crea una orden PRO pendiente sin tocar Stripe (para probar
+`/pro/pago-pendiente/` y `/pro/pagos/{id}/cancelar/`, que sin Stripe responden 503).

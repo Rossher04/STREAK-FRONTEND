@@ -48,3 +48,6 @@ app.*.map.json
 *.jks
 *.keystore
 android/key.properties
+
+# Backend local propio de las e2e de la fase 6-7 (BD y media desechables)
+.e2e/

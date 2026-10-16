@@ -1,6 +1,7 @@
 """Acciones de administrador para las e2e, sin tocar el repo del backend (se ejecuta con su venv).
 
     python admin.py preparar-recorrido
+    python admin.py pago-pendiente <username>
     python admin.py finalizar "<torneo>" "<equipo local>" "<equipo visita>" <goles local> <goles visita>
 
 `finalizar` hace lo mismo que el admin de Django: pone el partido en FINALIZADO con su marcador y lo guarda;
@@ -16,7 +17,7 @@ import django  # noqa: E402
 
 django.setup()
 from django.utils import timezone  # noqa: E402
-from quinielas.models import Partido, Quiniela, Torneo  # noqa: E402
+from quinielas.models import Pago, Partido, Quiniela, Torneo, Usuario  # noqa: E402
 
 
 def partido(torneo, local, visita):
@@ -40,6 +41,11 @@ def main(argv):
         # Un partido que se finaliza ya empezó: así los pronósticos ajenos dejan de estar ocultos (RN-39).
         p.fecha_hora = timezone.now() - timedelta(hours=3)
         p.save()
+    elif comando == 'pago-pendiente':
+        # Orden PRO pendiente (como si otro teléfono hubiera iniciado la compra), sin tocar Stripe.
+        usuario = Usuario.objects.get(username=argv[1])
+        Pago.objects.create(usuario=usuario, clave_idempotencia=f'e2e-pendiente-{usuario.pk}', referencia='',
+                            monto='5.00', moneda='usd')
     else:
         raise SystemExit(f'comando desconocido: {comando}')
     print('ok')
