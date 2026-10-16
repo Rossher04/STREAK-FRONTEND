@@ -3,6 +3,7 @@ import '../../../core/constants/api_constants.dart';
 import '../../../core/errors/app_exception.dart';
 import '../../../core/storage/cache_store.dart';
 import '../../../core/storage/secure_storage_service.dart';
+import '../../../core/utils/fecha_nacimiento.dart';
 import '../domain/usuario.dart';
 
 /// Foto elegida en el selector de imágenes, lista para enviarse como multipart.
@@ -50,6 +51,7 @@ class AuthRepository {
     required String firstName,
     required String lastName,
     String telefono = '',
+    DateTime? fechaNacimiento,
   }) async {
     try {
       await _dio.post(
@@ -61,6 +63,7 @@ class AuthRepository {
           'first_name': firstName.trim(),
           'last_name': lastName.trim(),
           'telefono': telefono.trim(),
+          if (fechaNacimiento != null) 'fecha_nacimiento': FechaNacimiento.aIso(fechaNacimiento),
         },
       );
     } on DioException catch (e) {
@@ -150,10 +153,19 @@ class AuthRepository {
     required String firstName,
     required String lastName,
     required String telefono,
+    DateTime? fechaNacimiento,
+    bool borrarFechaNacimiento = false,
     FotoPerfil? foto,
   }) async {
     try {
-      final campos = {'first_name': firstName, 'last_name': lastName, 'telefono': telefono};
+      final campos = <String, Object?>{
+        'first_name': firstName,
+        'last_name': lastName,
+        'telefono': telefono,
+        // Sin fecha ni borrado explícito no se envía el campo, para no borrar la guardada.
+        if (fechaNacimiento != null) 'fecha_nacimiento': FechaNacimiento.aIso(fechaNacimiento),
+        if (fechaNacimiento == null && borrarFechaNacimiento) 'fecha_nacimiento': foto == null ? null : '',
+      };
       final Object body;
       Options? options;
       if (foto != null) {

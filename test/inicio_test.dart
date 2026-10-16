@@ -158,7 +158,7 @@ void main() {
     });
   });
 
-  testWidgets('Perfil (10): usuario de solo lectura y fecha de nacimiento deshabilitada (backend #18)', (tester) async {
+  testWidgets('Perfil (10): usuario de solo lectura y fecha de nacimiento editable (backend #18)', (tester) async {
     tester.view.physicalSize = const Size(780, 1688);
     tester.view.devicePixelRatio = 2;
     addTearDown(tester.view.reset);
@@ -173,7 +173,7 @@ void main() {
     expect(campo('Usuario').enabled, isFalse);
     expect(find.text('ana_m'), findsOneWidget);
     expect(campo('Nombre').enabled, isNot(isFalse));
-    expect(campo('Fecha de nacimiento').enabled, isFalse);
+    expect(campo('Fecha de nacimiento').enabled, isNot(isFalse));
     expect(find.text('Guardar cambios'), findsOneWidget);
   });
 }

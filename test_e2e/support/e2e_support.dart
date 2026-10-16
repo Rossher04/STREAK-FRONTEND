@@ -76,7 +76,7 @@ class AppE2E {
   AuthSession get sesion => container.read(authControllerProvider);
 
   /// Registra un usuario nuevo (queda con sesión iniciada) y devuelve su username.
-  Future<String> registrarNuevo(String prefijo) async {
+  Future<String> registrarNuevo(String prefijo, {DateTime? fechaNacimiento}) async {
     final u = '$prefijo${DateTime.now().microsecondsSinceEpoch}';
     await auth.register(
       username: u,
@@ -84,6 +84,7 @@ class AppE2E {
       password: clave,
       firstName: 'Nombre',
       lastName: 'Apellido',
+      fechaNacimiento: fechaNacimiento,
     );
     return u;
   }

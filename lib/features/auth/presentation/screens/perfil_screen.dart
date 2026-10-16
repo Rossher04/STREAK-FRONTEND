@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/errors/app_exception.dart';
+import '../../../../core/utils/fecha_nacimiento.dart';
 import '../../../../core/theme/streak_theme.dart';
 import '../../../../core/widgets/avatar_usuario.dart';
 import '../../../../core/widgets/botones.dart';
@@ -13,10 +14,11 @@ import '../../../../core/widgets/streak_icon.dart';
 import '../../../quinielas/presentation/widgets/quiniela_widgets.dart' show horaLocal;
 import '../../application/auth_controller.dart';
 import '../../data/auth_repository.dart';
+import '../widgets/campo_fecha_nacimiento.dart';
 import '../widgets/eliminar_cuenta_dialogo.dart';
 
 /// Pantalla 10 · Mi perfil (B2): datos reales de `GET /usuarios/me/`; se guardan con `PATCH` (multipart si hay foto).
-/// El usuario es de solo lectura (RN-09). La fecha de nacimiento aún no existe en la API: TODO(backend #18).
+/// El usuario es de solo lectura (RN-09). La fecha de nacimiento (RN-09) es editable y opcional.
 class PerfilScreen extends ConsumerStatefulWidget {
   const PerfilScreen({super.key});
 
@@ -28,6 +30,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
   final _nombre = TextEditingController();
   final _apellidos = TextEditingController();
   final _telefono = TextEditingController();
+  final _fecha = TextEditingController();
   FotoPerfil? _fotoNueva;
   Uint8List? _vistaPrevia;
   bool _guardando = false;
@@ -40,6 +43,8 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     _nombre.text = user?.firstName ?? '';
     _apellidos.text = user?.lastName ?? '';
     _telefono.text = user?.telefono ?? '';
+    final nacimiento = user?.fechaNacimiento;
+    _fecha.text = nacimiento == null ? '' : FechaNacimiento.aVista(nacimiento);
   }
 
   @override
@@ -47,6 +52,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     _nombre.dispose();
     _apellidos.dispose();
     _telefono.dispose();
+    _fecha.dispose();
     super.dispose();
   }
 
@@ -85,6 +91,16 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
   }
 
   Future<void> _guardar() async {
+    final textoFecha = _fecha.text.trim();
+    final fecha = FechaNacimiento.parseVista(textoFecha);
+    if (FechaNacimiento.validar(textoFecha) != null) {
+      setState(() => _error = const AppException(
+            codigo: 'FECHA_INVALIDA',
+            mensaje: 'Revisa la fecha de nacimiento (dd/mm/aaaa).',
+            campos: {'fecha_nacimiento': 'Revisa la fecha de nacimiento (dd/mm/aaaa).'},
+          ));
+      return;
+    }
     setState(() {
       _guardando = true;
       _error = null;
@@ -94,6 +110,8 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
             firstName: _nombre.text.trim(),
             lastName: _apellidos.text.trim(),
             telefono: _telefono.text.trim(),
+            fechaNacimiento: fecha,
+            borrarFechaNacimiento: textoFecha.isEmpty,
             foto: _fotoNueva,
           );
       _fotoNueva = null;
@@ -111,7 +129,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
     final user = sesion.user;
     final offlineDesde = sesion.offlineDesde;
     final e = _error;
-    final conocidos = {'first_name', 'last_name', 'telefono', 'foto'};
+    final conocidos = {'first_name', 'last_name', 'telefono', 'fecha_nacimiento', 'foto'};
     final general = e != null && !e.campos.keys.any(conocidos.contains) ? e.mensaje : null;
     return Scaffold(
       appBar: AppBar(title: const Text('Mi perfil')),
@@ -174,14 +192,7 @@ class _PerfilScreenState extends ConsumerState<PerfilScreen> {
               errorServidor: e?.campo('telefono'),
             ),
             const SizedBox(height: 16),
-            // TODO(backend #18): la API no tiene fecha_nacimiento; se muestra deshabilitada y no se envía.
-            const CampoTexto(
-              etiqueta: 'Fecha de nacimiento',
-              hint: 'dd/mm/aaaa',
-              habilitado: false,
-              sufijo: StreakIcons.calendar,
-              ayuda: 'Aún no disponible',
-            ),
+            CampoFechaNacimiento(controller: _fecha, errorServidor: e?.campo('fecha_nacimiento')),
             const SizedBox(height: 24),
             BotonPrimario(
               texto: offlineDesde != null ? 'Sin conexión' : 'Guardar cambios',

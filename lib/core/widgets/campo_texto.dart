@@ -20,6 +20,8 @@ class CampoTexto extends StatefulWidget {
     this.soloLectura = false,
     this.habilitado = true,
     this.sufijo,
+    this.sufijoTooltip,
+    this.onSufijoTap,
     this.keyboardType,
     this.inputFormatters,
     this.textCapitalization = TextCapitalization.none,
@@ -47,6 +49,10 @@ class CampoTexto extends StatefulWidget {
   final bool soloLectura;
   final bool habilitado;
   final StreakIcons? sufijo;
+
+  /// Si se da, el ícono [sufijo] es un botón (p. ej. el calendario de la fecha de nacimiento).
+  final VoidCallback? onSufijoTap;
+  final String? sufijoTooltip;
   final TextInputType? keyboardType;
   final List<TextInputFormatter>? inputFormatters;
   final TextCapitalization textCapitalization;
@@ -94,6 +100,12 @@ class _CampoTextoState extends State<CampoTexto> {
       sufijo = const Padding(
         padding: EdgeInsets.all(12),
         child: StreakIcon(StreakIcons.alert, color: StreakColors.orangeText),
+      );
+    } else if (widget.sufijo != null && widget.onSufijoTap != null) {
+      sufijo = IconButton(
+        tooltip: widget.sufijoTooltip,
+        onPressed: widget.onSufijoTap,
+        icon: StreakIcon(widget.sufijo!, color: StreakColors.muted),
       );
     } else if (widget.sufijo != null) {
       sufijo = Padding(

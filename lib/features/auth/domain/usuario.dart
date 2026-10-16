@@ -1,3 +1,5 @@
+import '../../../core/utils/fecha_nacimiento.dart';
+
 class Usuario {
   const Usuario({
     required this.id,
@@ -6,6 +8,7 @@ class Usuario {
     this.firstName = '',
     this.lastName = '',
     this.telefono = '',
+    this.fechaNacimiento,
     this.fotoUrl,
     this.esPro = false,
     this.passTemporal = false,
@@ -20,6 +23,7 @@ class Usuario {
       firstName: json['first_name'] as String? ?? '',
       lastName: json['last_name'] as String? ?? '',
       telefono: json['telefono'] as String? ?? '',
+      fechaNacimiento: FechaNacimiento.parseIso(json['fecha_nacimiento'] as String?),
       fotoUrl: json['foto'] as String?,
       esPro: json['es_pro'] == true,
       passTemporal: json['pass_temporal_flag'] == true,
@@ -32,6 +36,9 @@ class Usuario {
   final String firstName;
   final String lastName;
   final String telefono;
+
+  /// Solo fecha (RN-09); la API la manda como `YYYY-MM-DD` o null.
+  final DateTime? fechaNacimiento;
   final String? fotoUrl;
   final bool esPro;
   final bool passTemporal;
@@ -49,6 +56,7 @@ class Usuario {
       firstName: firstName,
       lastName: lastName,
       telefono: telefono,
+      fechaNacimiento: fechaNacimiento,
       fotoUrl: fotoUrl,
       esPro: esPro,
       passTemporal: passTemporal ?? this.passTemporal,

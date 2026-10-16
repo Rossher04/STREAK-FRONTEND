@@ -79,6 +79,20 @@ void main() {
     expect(nombres, hasLength(2));
   });
 
+  test('unirse devuelve el quiniela_id y con él se abre la quiniela (backend #15)', () async {
+    await a.registrarNuevo('dueno2');
+    final torneo = await a.torneoActivo('Copa E2E Nueva');
+    final q = await a.crear('Abre al unirse', torneo.id, 5);
+
+    final socio = await b.registrarNuevo('socio2');
+    final id = await b.repo.unirse(q.codigoUnico);
+    expect(id, q.id);
+
+    final vista = await b.repo.vista(id!, usuarioId: b.usuarioId);
+    expect(vista.quiniela.nombre, 'Abre al unirse');
+    expect(socio, isNotEmpty);
+  });
+
   test('YA_PARTICIPA: el creador y el que ya se unió no pueden repetir', () async {
     await a.registrarNuevo('dup');
     final torneo = await a.torneoActivo('Liga E2E En Curso');

@@ -3,12 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/streak_theme.dart';
+import '../../../../core/utils/fecha_nacimiento.dart';
 import '../../../../core/utils/password_rules.dart';
 import '../../../../core/widgets/botones.dart';
 import '../../../../core/widgets/campo_texto.dart';
 import '../../../../core/widgets/estructura.dart';
-import '../../../../core/widgets/streak_icon.dart';
 import '../../application/auth_controller.dart';
+import '../widgets/campo_fecha_nacimiento.dart';
 import '../widgets/textos_legales.dart';
 
 /// Texto de ayuda de la contraseña (RN-03), igual en registro, restablecer y cambio.
@@ -36,6 +37,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
   final _nombre = TextEditingController();
   final _apellidos = TextEditingController();
   final _telefono = TextEditingController();
+  final _fecha = TextEditingController();
   final _password = TextEditingController();
   bool _acepta = false;
   bool _faltaAceptar = false;
@@ -44,7 +46,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
 
   @override
   void dispose() {
-    for (final c in [_usuario, _correo, _nombre, _apellidos, _telefono, _password]) {
+    for (final c in [_usuario, _correo, _nombre, _apellidos, _telefono, _fecha, _password]) {
       c.dispose();
     }
     super.dispose();
@@ -59,7 +61,6 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
     if (!valido || !_acepta) return;
     setState(() => _cargando = true);
     try {
-      // TODO(backend #18): la fecha de nacimiento no existe en la API (ni en registro ni en perfil), no se envía.
       await ref.read(authControllerProvider.notifier).register(
             username: _usuario.text,
             email: _correo.text,
@@ -67,6 +68,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
             firstName: _nombre.text,
             lastName: _apellidos.text,
             telefono: _telefono.text,
+            fechaNacimiento: FechaNacimiento.parseVista(_fecha.text),
           );
     } on AppException catch (e) {
       if (mounted) setState(() => _error = e);
@@ -78,7 +80,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
   @override
   Widget build(BuildContext context) {
     final e = _error;
-    final conocidos = {'username', 'email', 'first_name', 'last_name', 'telefono', 'password'};
+    final conocidos = {'username', 'email', 'first_name', 'last_name', 'telefono', 'fecha_nacimiento', 'password'};
     final general = e != null && !e.campos.keys.any(conocidos.contains) ? e.mensaje : null;
     return Scaffold(
       appBar: AppBar(title: const Text('Crear cuenta')),
@@ -138,14 +140,7 @@ class _RegistroScreenState extends ConsumerState<RegistroScreen> {
                 errorServidor: e?.campo('telefono'),
               ),
               const SizedBox(height: 16),
-              // TODO(backend #18): habilitar y enviar cuando la API acepte fecha_nacimiento.
-              const CampoTexto(
-                etiqueta: 'Fecha de nacimiento',
-                hint: 'dd/mm/aaaa',
-                habilitado: false,
-                sufijo: StreakIcons.calendar,
-                ayuda: 'Aún no disponible',
-              ),
+              CampoFechaNacimiento(controller: _fecha, errorServidor: e?.campo('fecha_nacimiento')),
               const SizedBox(height: 16),
               CampoTexto(
                 etiqueta: 'Contraseña',

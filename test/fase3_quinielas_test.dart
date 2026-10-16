@@ -48,6 +48,7 @@ class _Repo extends QuinielasRepository {
   ValidacionCodigo validacion = _validacion();
   AppException? errorValidar;
   AppException? errorUnirse;
+  int? quinielaIdUnirse; // lo que devuelve unirse/ (null = backend sin quiniela_id)
   AppException? errorCrear;
   final llamadas = <String>[];
   ({String nombre, int torneoId, int max})? creada;
@@ -60,9 +61,10 @@ class _Repo extends QuinielasRepository {
   }
 
   @override
-  Future<void> unirse(String codigo, {bool aceptarIngresoTardio = false}) async {
+  Future<int?> unirse(String codigo, {bool aceptarIngresoTardio = false}) async {
     llamadas.add('unirse $codigo tardio=$aceptarIngresoTardio');
     if (errorUnirse != null) throw errorUnirse!;
+    return quinielaIdUnirse;
   }
 
   @override
@@ -85,11 +87,13 @@ const _torneos = [
   Torneo(id: 2, nombre: 'Copa 2026', formato: 'GRUPOS_ELIMINATORIA', temporada: '2026', estado: 'ACTIVO'),
 ];
 
-Future<_Repo> _montar(WidgetTester tester, String inicial, {bool pro = false, List<Override> extra = const []}) async {
+Future<_Repo> _montar(WidgetTester tester, String inicial,
+    {bool pro = false, List<Override> extra = const [], void Function(_Repo)? configurar}) async {
   tester.view.physicalSize = const Size(390 * 2, 844 * 2);
   tester.view.devicePixelRatio = 2;
   addTearDown(tester.view.reset);
   final repo = _Repo();
+  configurar?.call(repo);
   final router = GoRouter(initialLocation: inicial, routes: [
     GoRoute(path: '/home', builder: (_, __) => const Scaffold(body: Text('INICIO'))),
     GoRoute(path: '/pro', builder: (_, __) => const Scaffold(body: Text('PRO'))),
@@ -256,6 +260,16 @@ void main() {
       expect(find.text('Este torneo ya empezó'), findsNothing);
       expect(repo.llamadas, ['validar K7P2XM', 'unirse K7P2XM tardio=false']);
       expect(find.text('QUINIELA 77'), findsOneWidget);
+    });
+
+    testWidgets('abre la quiniela con el quiniela_id que devuelve unirse (backend #15)', (tester) async {
+      final repo = await _montar(tester, '/quinielas/unirse', configurar: (r) => r.quinielaIdUnirse = 91);
+      await _escribirCodigo(tester, 'K7P2XM');
+      await tester.tap(find.text('Continuar'));
+      await tester.pumpAndSettle();
+      expect(repo.llamadas, ['validar K7P2XM', 'unirse K7P2XM tardio=false']);
+      expect(find.text('QUINIELA 91'), findsOneWidget);
+      expect(find.text('QUINIELA 77'), findsNothing);
     });
 
     for (final (codigo, mensaje) in [

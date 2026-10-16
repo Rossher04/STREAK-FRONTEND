@@ -22,6 +22,7 @@ class _AuthFalso extends AuthController {
   final AppException? error;
   final bool temporal;
   int registros = 0;
+  DateTime? ultimaFecha;
 
   @override
   AuthSession build() => temporal
@@ -44,8 +45,10 @@ class _AuthFalso extends AuthController {
     required String firstName,
     required String lastName,
     String telefono = '',
+    DateTime? fechaNacimiento,
   }) async {
     registros++;
+    ultimaFecha = fechaNacimiento;
     if (error != null) throw error!;
   }
 
@@ -111,14 +114,74 @@ void main() {
   });
 
   group('02 Registro', () {
-    testWidgets('fecha de nacimiento visible pero deshabilitada (backend #18)', (tester) async {
+    testWidgets('fecha de nacimiento habilitada, opcional y con selector (backend #18)', (tester) async {
       await _montar(tester, const RegistroScreen(), _AuthFalso());
       expect(find.text('Fecha de nacimiento'), findsOneWidget);
-      final campo = tester.widget<TextFormField>(find.descendant(
-        of: find.ancestor(of: find.text('Fecha de nacimiento'), matching: find.byType(CampoTexto)),
-        matching: find.byType(TextFormField),
-      ));
-      expect(campo.enabled, isFalse);
+      final campo = tester.widget<TextFormField>(find.byKey(const Key('fecha_nacimiento')));
+      expect(campo.enabled, isNot(isFalse));
+      expect(find.byTooltip('Elegir fecha de nacimiento'), findsOneWidget);
+    });
+
+    Future<void> enviarRegistro(WidgetTester tester) async {
+      await tester.ensureVisible(find.byType(Checkbox));
+      await tester.tap(find.byType(Checkbox));
+      final boton = find.widgetWithText(ElevatedButton, 'Crear cuenta');
+      await tester.ensureVisible(boton);
+      await tester.tap(boton);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('con fecha dd/mm/aaaa se envía como fecha', (tester) async {
+      final auth = _AuthFalso();
+      await _montar(tester, const RegistroScreen(), auth);
+      await _escribir(tester, 'Usuario', 'nuevo');
+      await _escribir(tester, 'Correo electrónico', 'n@correo.com');
+      await _escribir(tester, 'Contraseña', 'Clave1234x');
+      await tester.enterText(find.byKey(const Key('fecha_nacimiento')), '23041995');
+      await tester.pump();
+      expect(find.text('23/04/1995'), findsOneWidget, reason: 'el formateador agrega las diagonales');
+      await enviarRegistro(tester);
+      expect(auth.registros, 1);
+      expect(auth.ultimaFecha, DateTime(1995, 4, 23));
+    });
+
+    testWidgets('sin fecha se registra igual (opcional)', (tester) async {
+      final auth = _AuthFalso();
+      await _montar(tester, const RegistroScreen(), auth);
+      await _escribir(tester, 'Usuario', 'nuevo');
+      await _escribir(tester, 'Correo electrónico', 'n@correo.com');
+      await _escribir(tester, 'Contraseña', 'Clave1234x');
+      await enviarRegistro(tester);
+      expect(auth.registros, 1);
+      expect(auth.ultimaFecha, isNull);
+    });
+
+    testWidgets('fecha inválida o futura: error local y no se envía', (tester) async {
+      final auth = _AuthFalso();
+      await _montar(tester, const RegistroScreen(), auth);
+      await _escribir(tester, 'Usuario', 'nuevo');
+      await _escribir(tester, 'Correo electrónico', 'n@correo.com');
+      await _escribir(tester, 'Contraseña', 'Clave1234x');
+      await tester.enterText(find.byKey(const Key('fecha_nacimiento')), '31022000');
+      await enviarRegistro(tester);
+      expect(find.text('Escribe una fecha válida (dd/mm/aaaa)'), findsOneWidget);
+      await tester.enterText(find.byKey(const Key('fecha_nacimiento')), '01012999');
+      await enviarRegistro(tester);
+      expect(find.text('La fecha no puede ser futura'), findsOneWidget);
+      expect(auth.registros, 0);
+    });
+
+    testWidgets('el selector de fecha llena el campo en dd/mm/aaaa', (tester) async {
+      await _montar(tester, const RegistroScreen(), _AuthFalso());
+      await tester.ensureVisible(find.byTooltip('Elegir fecha de nacimiento'));
+      await tester.tap(find.byTooltip('Elegir fecha de nacimiento'));
+      await tester.pumpAndSettle();
+      expect(find.byType(DatePickerDialog), findsOneWidget);
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      final hoy = DateTime.now();
+      final esperado = '${hoy.day.toString().padLeft(2, '0')}/${hoy.month.toString().padLeft(2, '0')}/${hoy.year - 25}';
+      expect(tester.widget<TextFormField>(find.byKey(const Key('fecha_nacimiento'))).controller!.text, esperado);
     });
 
     testWidgets('sin aceptar los términos no se envía', (tester) async {

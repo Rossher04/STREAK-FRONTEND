@@ -42,6 +42,36 @@ void main() {
     expect(otra.sesion.user?.telefono, '5555-1234');
   });
 
+  test('editar, conservar y borrar la fecha de nacimiento (RN-09)', () async {
+    final username = await app.registrarNuevo('nacim');
+    expect(app.sesion.user?.fechaNacimiento, isNull);
+
+    await app.auth.actualizarPerfil(firstName: 'A', lastName: 'B', telefono: '', fechaNacimiento: DateTime(2000, 2, 29));
+    expect(app.sesion.user?.fechaNacimiento, DateTime(2000, 2, 29));
+
+    // Un PATCH sin fecha no la borra.
+    await app.auth.actualizarPerfil(firstName: 'C', lastName: 'D', telefono: '');
+    expect(app.sesion.user?.fechaNacimiento, DateTime(2000, 2, 29));
+
+    // Persistido en el servidor.
+    final otra = await AppE2E.crear();
+    addTearDown(otra.cerrar);
+    await otra.auth.login(username, clave);
+    expect(otra.sesion.user?.fechaNacimiento, DateTime(2000, 2, 29));
+
+    await app.auth.actualizarPerfil(firstName: 'C', lastName: 'D', telefono: '', borrarFechaNacimiento: true);
+    expect(app.sesion.user?.fechaNacimiento, isNull);
+  });
+
+  test('fecha de nacimiento futura: error por campo en español', () async {
+    await app.registrarNuevo('futura');
+    final manana = DateTime.now().add(const Duration(days: 2));
+    await expectLater(
+      app.auth.actualizarPerfil(firstName: 'A', lastName: 'B', telefono: '', fechaNacimiento: manana),
+      throwsA(isA<AppException>().having((e) => e.campo('fecha_nacimiento'), 'campo fecha_nacimiento', isNotNull)),
+    );
+  });
+
   test('username, correo y es_pro son de solo lectura aunque se envíen', () async {
     final username = await app.registrarNuevo('soloLectura');
     final dio = app.container.read(dioProvider);

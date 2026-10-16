@@ -58,22 +58,23 @@ class _UnirseQuinielaScreenState extends ConsumerState<UnirseQuinielaScreen> {
     try {
       var v = await repo.validarCodigo(code);
       var aceptar = false;
+      int? quinielaId;
       if (v.requiereConfirmacion) {
         if (!mounted) return;
         aceptar = await _confirmarIngresoTardio(v);
         if (!aceptar) return;
       }
       try {
-        await repo.unirse(code, aceptarIngresoTardio: aceptar);
+        quinielaId = await repo.unirse(code, aceptarIngresoTardio: aceptar);
       } on AppException catch (e) {
         // Carrera: entre la consulta y la unión cerró el primer partido. Se vuelve a consultar y se avisa.
         if (e.codigo != 'CONFIRMACION_INGRESO_TARDIO' || !mounted) rethrow;
         v = await repo.validarCodigo(code);
         if (!mounted) return;
         if (!await _confirmarIngresoTardio(v)) return;
-        await repo.unirse(code, aceptarIngresoTardio: true);
+        quinielaId = await repo.unirse(code, aceptarIngresoTardio: true);
       }
-      _unido(v);
+      _unido(v, quinielaId);
     } on AppException catch (e) {
       if (mounted) setState(() => _error = mensajeUnirse(e));
     } finally {
@@ -89,11 +90,11 @@ class _UnirseQuinielaScreenState extends ConsumerState<UnirseQuinielaScreen> {
     return ok && mounted;
   }
 
-  void _unido(ValidacionCodigo v) {
+  void _unido(ValidacionCodigo v, int? quinielaId) {
     refrescarQuinielas(ref);
     if (!mounted) return;
-    // unirse/ devuelve el participante, no la quiniela (TODO(backend #15)); el id viene de validar-codigo.
-    context.go('/quinielas/${v.quinielaId}');
+    // unirse/ devuelve quiniela_id; si el backend no lo manda se usa el de validar-codigo.
+    context.go('/quinielas/${quinielaId ?? v.quinielaId}');
     avisar(context, 'Te uniste a ${v.nombre}');
   }
 

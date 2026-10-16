@@ -33,6 +33,22 @@ void main() {
     expect(app.sesion.user?.esPro, isTrue);
   });
 
+  test('registro con fecha de nacimiento: queda guardada y se lee en /usuarios/me/ (RN-09)', () async {
+    final username = await app.registrarNuevo('fecha', fechaNacimiento: DateTime(1995, 4, 23));
+    expect(app.sesion.user?.fechaNacimiento, DateTime(1995, 4, 23));
+
+    // Persistida en el servidor: una sesión nueva la vuelve a leer.
+    final otra = await AppE2E.crear();
+    addTearDown(otra.cerrar);
+    await otra.auth.login(username, clave);
+    expect(otra.sesion.user?.fechaNacimiento, DateTime(1995, 4, 23));
+  });
+
+  test('registro sin fecha de nacimiento: es opcional', () async {
+    await app.registrarNuevo('sinfecha');
+    expect(app.sesion.user?.fechaNacimiento, isNull);
+  });
+
   test('credenciales malas dan error en español', () async {
     await expectLater(
       app.auth.login('ana', 'incorrecta1'),

@@ -112,13 +112,15 @@ class QuinielasRepository {
   /// POST /quinielas/unirse/. Errores: QUINIELA_LLENA, YA_PARTICIPA, TORNEO_NO_ACTIVO,
   /// 404 NO_ENCONTRADO si el código no existe y 409 CONFIRMACION_INGRESO_TARDIO si el torneo ya
   /// tiene partidos cerrados y no se envió `aceptarIngresoTardio`.
-  /// Devuelve el participante creado, no la quiniela (TODO(backend #15)): el id de la quiniela sale
-  /// de [validarCodigo].
-  Future<void> unirse(String codigo, {bool aceptarIngresoTardio = false}) => _call(() async {
-        await _dio.post(ApiConstants.quinielasUnirse, data: {
+  /// Devuelve el `quiniela_id` de la quiniela a la que se unió, o null si el backend no lo manda
+  /// (versiones anteriores): entonces la pantalla usa el id de [validarCodigo].
+  Future<int?> unirse(String codigo, {bool aceptarIngresoTardio = false}) => _call(() async {
+        final resp = await _dio.post(ApiConstants.quinielasUnirse, data: {
           'codigo': codigo.trim().toUpperCase(),
           if (aceptarIngresoTardio) 'aceptar_ingreso_tardio': true,
         });
+        final data = resp.data;
+        return data is Map ? data['quiniela_id'] as int? : null;
       });
 
   /// Carga todo lo de la quiniela activa. Sin red (RN-74) devuelve lo último guardado para

@@ -260,6 +260,14 @@ abstract final class StreakTheme {
           side: const BorderSide(color: StreakColors.line),
         ),
       ),
+      datePickerTheme: DatePickerThemeData(
+        backgroundColor: StreakColors.surface1,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(StreakRadius.sheet),
+          side: const BorderSide(color: StreakColors.line),
+        ),
+      ),
       drawerTheme: const DrawerThemeData(
         backgroundColor: StreakColors.surface1,
         surfaceTintColor: Colors.transparent,

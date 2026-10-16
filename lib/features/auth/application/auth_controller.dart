@@ -84,6 +84,7 @@ class AuthController extends Notifier<AuthSession> {
     required String firstName,
     required String lastName,
     String telefono = '',
+    DateTime? fechaNacimiento,
   }) async {
     final user = await _repo.register(
       username: username,
@@ -92,6 +93,7 @@ class AuthController extends Notifier<AuthSession> {
       firstName: firstName,
       lastName: lastName,
       telefono: telefono,
+      fechaNacimiento: fechaNacimiento,
     );
     state = AuthSession(status: AuthStatus.authenticated, user: user);
   }
@@ -137,12 +139,16 @@ class AuthController extends Notifier<AuthSession> {
     required String firstName,
     required String lastName,
     required String telefono,
+    DateTime? fechaNacimiento,
+    bool borrarFechaNacimiento = false,
     FotoPerfil? foto,
   }) async {
     final user = await _repo.actualizarPerfil(
       firstName: firstName,
       lastName: lastName,
       telefono: telefono,
+      fechaNacimiento: fechaNacimiento,
+      borrarFechaNacimiento: borrarFechaNacimiento,
       foto: foto,
     );
     state = AuthSession(status: AuthStatus.authenticated, user: user);
