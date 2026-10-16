@@ -7,8 +7,7 @@ import 'package:streak_mobile/features/quinielas/presentation/screens/unirse_qui
 
 import 'support/e2e_support.dart';
 
-Matcher _error(String codigo) =>
-    isA<AppException>().having((e) => e.codigo, 'codigo', codigo);
+Matcher _error(String codigo) => isA<AppException>().having((e) => e.codigo, 'codigo', codigo);
 
 void main() {
   late AppE2E a; // creador
@@ -39,7 +38,7 @@ void main() {
     final torneo = await a.torneoActivo('Liga E2E En Curso');
     final q = await a.crear('Mi quiniela e2e', torneo.id, 8);
     expect(q.codigoUnico, matches(RegExp(r'^[A-Z1-9]{6}$')));
-    expect(q.codigoUnico, isNot(matches(RegExp('[0OIL]'))));
+    expect(q.codigoUnico, isNot(matches(RegExp('[0OIL1]'))), reason: 'RN-27: el backend ya no genera el 1');
     expect(q.maxParticipantes, 8);
     expect(q.torneoId, torneo.id);
     expect(q.creadorId, a.sesion.user!.id);
@@ -89,7 +88,7 @@ void main() {
 
     await b.registrarNuevo('dup2');
     final repoB = b.container.read(quinielasRepositoryProvider);
-    await repoB.unirse(q.codigoUnico);
+    await repoB.unirse(q.codigoUnico, aceptarIngresoTardio: true);
     await expectLater(repoB.unirse(q.codigoUnico), throwsA(_error('YA_PARTICIPA')));
     expect(await a.participantes(q.id), hasLength(2));
   });
@@ -100,7 +99,7 @@ void main() {
     final q = await a.crear('Solo dos', torneo.id, 2);
 
     await b.registrarNuevo('llena2');
-    await b.container.read(quinielasRepositoryProvider).unirse(q.codigoUnico);
+    await b.container.read(quinielasRepositoryProvider).unirse(q.codigoUnico, aceptarIngresoTardio: true);
 
     final c = await AppE2E.crear();
     addTearDown(c.cerrar);
@@ -121,7 +120,7 @@ void main() {
         .unirse('ZZZZZZ')
         .then<AppException?>((_) => null, onError: (Object e) => e as AppException);
     expect(error?.codigo, 'NO_ENCONTRADO');
-    expect(mensajeUnirse(error!), 'No existe ninguna quiniela con ese código.');
+    expect(mensajeUnirse(error!), startsWith('No existe ninguna quiniela con ese código.'));
   });
 
   test('historial: solo quinielas de torneos finalizados; /mias conserva todas', () async {
@@ -144,5 +143,75 @@ void main() {
     final activos = await a.container.read(torneosActivosProvider.future);
     expect(activos.every((t) => t.esActivo), isTrue);
     expect(activos, isNotEmpty);
+  });
+
+  // ---- Fase 3: validar-codigo, ingreso tardío y topes (backend a86fe6d) ----
+
+  test('validar-codigo sin partidos cerrados: no requiere confirmación ni inscribe', () async {
+    await a.registrarNuevo('val');
+    final q = await a.crear('Copa sin cerrar', (await a.torneoActivo('Copa E2E Nueva')).id, 6);
+    await b.registrarNuevo('val2');
+    final v = await b.repo.validarCodigo(q.codigoUnico.toLowerCase());
+    expect(v.quinielaId, q.id);
+    expect(v.nombre, 'Copa sin cerrar');
+    expect(v.torneoNombre, 'Copa E2E Nueva');
+    expect((v.cantidadInscritos, v.maxParticipantes), (1, 6));
+    expect(v.requiereConfirmacion, isFalse);
+    expect(v.partidosCerrados, 0);
+    expect(await b.mias(), isEmpty, reason: 'la consulta previa no inscribe');
+    await b.repo.unirse(q.codigoUnico);
+    expect((await b.mias()).map((e) => e.id), [q.id]);
+  });
+
+  test('validar-codigo con partidos cerrados: confirmación obligatoria, sin penalización', () async {
+    await a.registrarNuevo('tard');
+    final q = await a.crear('Liga empezada', (await a.torneoActivo('Liga E2E En Curso')).id, 12);
+    await b.registrarNuevo('tard2');
+    final v = await b.repo.validarCodigo(q.codigoUnico);
+    expect(v.requiereConfirmacion, isTrue);
+    expect(v.ingresoTardio, isTrue);
+    expect(v.partidosCerrados, 1);
+    expect(v.penalizacionPuntos, 0);
+    expect(v.quinielaId, q.id);
+
+    await expectLater(b.repo.unirse(q.codigoUnico), throwsA(_error('CONFIRMACION_INGRESO_TARDIO')));
+    expect(await b.mias(), isEmpty);
+    await b.repo.unirse(q.codigoUnico, aceptarIngresoTardio: true);
+    expect((await b.mias()).map((e) => e.id), [q.id]);
+    expect(await a.participantes(q.id), hasLength(2));
+  });
+
+  test('validar-codigo: errores reales del backend con mensaje claro', () async {
+    await a.registrarNuevo('verr');
+    final q = await a.crear('Para errores', (await a.torneoActivo('Copa E2E Nueva')).id, 2);
+    Future<AppException?> err(AppE2E app, String codigo) =>
+        app.repo.validarCodigo(codigo).then<AppException?>((_) => null, onError: (Object e) => e as AppException);
+
+    expect((await err(a, 'ZZZZZZ'))?.codigo, 'NO_ENCONTRADO');
+    final ya = await err(a, q.codigoUnico);
+    expect(ya?.codigo, 'YA_PARTICIPA');
+    expect(mensajeUnirse(ya!), startsWith('Ya participas'));
+
+    await b.registrarNuevo('verr2');
+    await b.repo.unirse(q.codigoUnico);
+    final c = await AppE2E.crear();
+    addTearDown(c.cerrar);
+    await c.registrarNuevo('verr3');
+    expect((await err(c, q.codigoUnico))?.codigo, 'QUINIELA_LLENA');
+    expect((await err(c, 'CLAU25'))?.codigo, 'TORNEO_NO_ACTIVO');
+  });
+
+  test('tope RN-26: 51 se rechaza sin Pro con mensaje por campo; Pro llega a 100', () async {
+    await a.registrarNuevo('tope');
+    final torneo = await a.torneoActivo('Copa E2E Nueva');
+    await expectLater(
+      a.crear('Demasiados', torneo.id, 51),
+      throwsA(isA<AppException>().having((e) => e.mensaje, 'mensaje', startsWith('Participantes: '))),
+    );
+    expect((await a.crear('Cincuenta', torneo.id, 50)).maxParticipantes, 50);
+
+    await b.auth.login('beto', clave);
+    expect((await b.crear('Cien', torneo.id, 100)).maxParticipantes, 100);
+    await expectLater(b.crear('Ciento uno', torneo.id, 101), throwsA(_error('DATOS_INVALIDOS')));
   });
 }

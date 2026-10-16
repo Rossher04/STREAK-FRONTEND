@@ -21,9 +21,10 @@ class ResumenPuntaje extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Text(texto, style: StreakText.pequeno)),
+        Expanded(child: Text(texto, style: StreakText.etiqueta)),
         IconButton(
           tooltip: 'Ver sistema de puntaje',
+          visualDensity: VisualDensity.compact,
           onPressed: () => mostrarSistemaPuntaje(context),
           icon: const StreakIcon(StreakIcons.info, color: StreakColors.muted, size: StreakSize.iconSmall),
         ),

@@ -173,7 +173,6 @@ class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
                           'Hasta ${AppConstants.maxParticipantesPro} con Pro',
                           variante: VarianteChip.pro,
                           icono: StreakIcons.crownPro,
-                          grande: true,
                         ),
                       ),
                   ],
@@ -185,18 +184,16 @@ class _CrearQuinielaScreenState extends ConsumerState<CrearQuinielaScreen> {
                   divisions: tope - minimo,
                   value: maximo.toDouble(),
                   label: '$maximo',
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
                   semanticFormatterCallback: (v) => '${v.round()} participantes',
                   onChanged: (v) => setState(() => _max = v),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('$minimo', style: StreakText.pequeno),
-                      Text('$tope', style: StreakText.pequeno),
-                    ],
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('$minimo', style: StreakText.pequeno),
+                    Text('$tope', style: StreakText.pequeno),
+                  ],
                 ),
               ],
             ),
