@@ -11,7 +11,7 @@ String _formatear(String texto) {
 }
 
 void main() {
-  group('CodigoFormatter (RN-27)', () {
+  group('CodigoFormatter (RN-27: sin 0 O 1 I L)', () {
     test('pasa a mayúsculas', () {
       expect(_formatear('k7p2xm'), 'K7P2XM');
     });
@@ -20,8 +20,12 @@ void main() {
       expect(_formatear('0OILAB'), 'AB');
     });
 
-    test('admite el 1 porque el backend lo genera', () {
-      expect(_formatear('ab1c2d'), 'AB1C2D');
+    test('descarta también el 1 (el backend ya no lo genera)', () {
+      expect(_formatear('ab1c2d'), 'ABC2D');
+    });
+
+    test('corta en 6 caracteres', () {
+      expect(_formatear('k7p2xmab'), 'K7P2XM');
     });
 
     test('descarta espacios y símbolos', () {

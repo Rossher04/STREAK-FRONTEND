@@ -22,8 +22,7 @@ class QuinielasRepository {
     }
   }
 
-  List<Map<String, dynamic>> _lista(dynamic data) =>
-      (data as List).cast<Map<String, dynamic>>();
+  List<Map<String, dynamic>> _lista(dynamic data) => (data as List).cast<Map<String, dynamic>>();
 
   /// GET /torneos/ (activos y finalizados; los borradores no se publican). Datos públicos: sin red
   /// se usa la última copia (solo sirve para mostrar nombres de torneo).
@@ -100,10 +99,26 @@ class QuinielasRepository {
         return Quiniela.fromJson(resp.data as Map<String, dynamic>);
       });
 
-  /// POST /quinielas/unirse/. Errores: QUINIELA_LLENA, YA_PARTICIPA, TORNEO_NO_ACTIVO
-  /// y 404 NO_ENCONTRADO si el código no existe.
-  Future<void> unirse(String codigo) => _call(() async {
-        await _dio.post(ApiConstants.quinielasUnirse, data: {'codigo': codigo.trim().toUpperCase()});
+  /// Ruta de la consulta previa. Va aquí y no en `ApiConstants` para no tocar `lib/core` en la fase 3.
+  static const rutaValidarCodigo = '/quinielas/validar-codigo/';
+
+  /// POST /quinielas/validar-codigo/: vista previa sin inscribir (nombre, torneo, inscritos, ingreso
+  /// tardío). Errores: 404 NO_ENCONTRADO, QUINIELA_LLENA, YA_PARTICIPA, TORNEO_NO_ACTIVO.
+  Future<ValidacionCodigo> validarCodigo(String codigo) => _call(() async {
+        final resp = await _dio.post(rutaValidarCodigo, data: {'codigo': codigo.trim().toUpperCase()});
+        return ValidacionCodigo.fromJson(resp.data as Map<String, dynamic>);
+      });
+
+  /// POST /quinielas/unirse/. Errores: QUINIELA_LLENA, YA_PARTICIPA, TORNEO_NO_ACTIVO,
+  /// 404 NO_ENCONTRADO si el código no existe y 409 CONFIRMACION_INGRESO_TARDIO si el torneo ya
+  /// tiene partidos cerrados y no se envió `aceptarIngresoTardio`.
+  /// Devuelve el participante creado, no la quiniela (TODO(backend #15)): el id de la quiniela sale
+  /// de [validarCodigo].
+  Future<void> unirse(String codigo, {bool aceptarIngresoTardio = false}) => _call(() async {
+        await _dio.post(ApiConstants.quinielasUnirse, data: {
+          'codigo': codigo.trim().toUpperCase(),
+          if (aceptarIngresoTardio) 'aceptar_ingreso_tardio': true,
+        });
       });
 
   /// Carga todo lo de la quiniela activa. Sin red (RN-74) devuelve lo último guardado para

@@ -38,12 +38,14 @@ void main() {
   testWidgets('plan gratis: de 2 a 50 participantes', (tester) async {
     final s = await _slider(tester, pro: false);
     expect((s.min, s.max), (2.0, 50.0));
-    expect(find.textContaining('máx. 50'), findsOneWidget);
+    expect(find.text('50'), findsOneWidget, reason: 'etiqueta del extremo del deslizador');
+    expect(find.text('Hasta 100 con Pro'), findsOneWidget);
   });
 
   testWidgets('plan PRO: de 2 a 100 participantes', (tester) async {
     final s = await _slider(tester, pro: true);
     expect((s.min, s.max), (2.0, 100.0));
-    expect(find.textContaining('máx. 100'), findsOneWidget);
+    expect(find.text('100'), findsOneWidget);
+    expect(find.text('Hasta 100 con Pro'), findsNothing, reason: 'el chip solo se ofrece a quien no es Pro');
   });
 }
