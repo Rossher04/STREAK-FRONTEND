@@ -1,39 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/streak_theme.dart';
+import '../../../../core/widgets/estructura.dart';
 import '../../domain/quiniela_vista.dart';
 import 'quiniela_widgets.dart';
 
-/// Pestaña "Finalizados": resultado real, mi pronóstico y puntos de los partidos resueltos.
+/// Pestaña "Resultados" (17): partidos resueltos con marcador, mi pronóstico y los puntos del backend.
 class TabFinalizados extends StatelessWidget {
-  const TabFinalizados({super.key, required this.vista, required this.quinielaId, required this.onRefresh});
+  const TabFinalizados({super.key, required this.vista, required this.quinielaId});
 
   final QuinielaVista vista;
   final int quinielaId;
-  final Future<void> Function() onRefresh;
 
   @override
   Widget build(BuildContext context) {
-    final grupos = agruparPorFase(vista, vista.resueltos);
-    return RefreshIndicator(
-      onRefresh: onRefresh,
-      child: grupos.isEmpty
-          ? const ListaVacia(icono: Icons.sports_soccer, texto: 'Todavía no hay partidos finalizados.')
-          : ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 24),
-              children: [
-                for (final (fase, partidos) in grupos) ...[
-                  EncabezadoFase(fase),
-                  for (final p in partidos)
-                    PartidoResueltoCard(
-                      vista: vista,
-                      partido: p,
-                      onTap: () => context.push('/quinielas/$quinielaId/partido/${p.id}'),
-                    ),
-                ],
-              ],
-            ),
+    final resueltos = vista.resueltos;
+    if (resueltos.isEmpty) return const MensajeVacio('Todavía no hay partidos finalizados.');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final p in resueltos)
+          PartidoResueltoCard(
+            vista: vista,
+            partido: p,
+            onTap: () => context.push('/quinielas/$quinielaId/partido/${p.id}'),
+          ),
+      ],
     );
   }
 }
@@ -48,47 +40,57 @@ class PartidoResueltoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = partido;
-    final sinResultado = p.estado != 'FINALIZADO';
-    return Card(
-      child: InkWell(
+    final conMarcador = p.estado == 'FINALIZADO' && p.resultado != null;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TarjetaStreak(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            children: [
-              Text(
-                '${fechaLocal(p.fechaHora)} · ${textoEstado(p)}',
-                style: const TextStyle(color: StreakColors.text, fontSize: 12),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(vista.nombreEquipo(p.equipoLocalId),
-                        textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w700)),
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(child: Text('${diaLocal(p.fechaHora)} · ${textoEstado(p)}', style: StreakText.pequeno)),
+                ChipPuntosPartido(estado: p.estado, puntos: p.puntos),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: EquipoColumna(
+                      nombre: vista.nombreEquipo(p.equipoLocalId),
+                      escudo: p.equipoLocal?.escudo ?? vista.escudoEquipo(p.equipoLocalId)),
+                ),
+                Semantics(
+                  label: conMarcador ? 'Resultado ${textoMarcador(p.resultado)}' : 'Sin resultado',
+                  excludeSemantics: true,
+                  child: Text(
+                    conMarcador ? textoMarcador(p.resultado) : '– –',
+                    style: conMarcador ? StreakText.marcador : StreakText.marcador.copyWith(color: StreakColors.muted),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text(
-                      sinResultado ? 'vs' : textoMarcador(p.resultado),
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(vista.nombreEquipo(p.equipoVisitaId),
-                        textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w700)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                p.pronostico == null ? 'No pronosticaste' : 'Mi pronóstico: ${textoMarcador(p.pronostico)}',
-                style: const TextStyle(color: StreakColors.text),
-              ),
-              const SizedBox(height: 8),
-              EtiquetaPuntosChip(p),
-            ],
-          ),
+                ),
+                Expanded(
+                  child: EquipoColumna(
+                      nombre: vista.nombreEquipo(p.equipoVisitaId),
+                      escudo: p.equipoVisita?.escudo ?? vista.escudoEquipo(p.equipoVisitaId)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(child: Text('Tu pronóstico', style: StreakText.pequeno)),
+                Text(
+                  p.pronostico == null ? 'Sin pronóstico' : textoMarcador(p.pronostico),
+                  style: p.pronostico == null ? StreakText.pequeno : StreakText.cifraFila.copyWith(color: StreakColors.text),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );

@@ -1,173 +1,268 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:intl/date_symbol_data_local.dart';
+import 'package:streak_mobile/core/errors/app_exception.dart';
 import 'package:streak_mobile/core/network/server_clock.dart';
+import 'package:streak_mobile/core/storage/cache_store.dart';
+import 'package:streak_mobile/core/theme/streak_theme.dart';
+import 'package:streak_mobile/core/widgets/botones.dart';
+import 'package:streak_mobile/features/quinielas/application/quinielas_providers.dart';
+import 'package:streak_mobile/features/quinielas/data/quinielas_repository.dart';
 import 'package:streak_mobile/features/quinielas/domain/quiniela_vista.dart';
 import 'package:streak_mobile/features/quinielas/presentation/screens/quiniela_activa_screen.dart';
 import 'package:streak_mobile/features/quinielas/presentation/widgets/partido_pendiente_card.dart';
+import 'package:streak_mobile/features/quinielas/presentation/widgets/quiniela_widgets.dart';
 import 'package:streak_mobile/features/quinielas/presentation/widgets/tab_pendientes.dart';
 
 // Mediodía LOCAL: los textos "hoy / mañana / mié 14" no dependen de la zona horaria de quien corra la prueba.
 final _ahora = DateTime(2026, 10, 12, 12).toUtc();
 
-Map<String, dynamic> _partido(int id, int fase, DateTime inicio, {String estado = 'PROGRAMADO', Map<String, dynamic>? pron}) => {
+Map<String, dynamic> _partido(int id, int fase, DateTime inicio,
+        {String estado = 'PROGRAMADO', Map<String, dynamic>? pron, DateTime? cierre}) =>
+    {
       'id': id,
       'torneo': 1,
       'fase': fase,
       'equipo_local': 1,
       'equipo_visita': 2,
       'fecha_hora': inicio.toIso8601String(),
+      'cierre_pronosticos': (cierre ?? inicio.subtract(const Duration(minutes: 5))).toIso8601String(),
       'goles_local': null,
       'goles_visita': null,
       'estado': estado,
       'mi_pronostico': pron,
+      'estado_pronostico': pron == null ? 'NO_REGISTRADO' : 'VISIBLE',
       'mis_puntos': 0,
     };
 
-QuinielaVista _vista({String torneoEstado = 'ACTIVO', List<Map<String, dynamic>>? partidos, DateTime? offline}) {
+QuinielaVista _vista({
+  String torneoEstado = 'ACTIVO',
+  List<Map<String, dynamic>>? partidos,
+  DateTime? offline,
+  bool conResumen = true,
+  List<Map<String, dynamic>>? fases,
+}) {
   return QuinielaVista.fromRaw({
-    'quiniela': {'id': 1, 'nombre': 'Mi quiniela', 'torneo': 1, 'creador': 7, 'codigo_unico': 'ABC234', 'max_participantes': 10},
+    'quiniela': {
+      'id': 1,
+      'nombre': 'Mi quiniela',
+      'torneo': 1,
+      'creador': 7,
+      'codigo_unico': 'ABC234',
+      'max_participantes': 10,
+      if (conResumen) ...{'torneo_nombre': 'Copa Test', 'cantidad_inscritos': 4, 'mis_puntos': 6, 'mi_posicion': 2},
+    },
     'torneo': {'id': 1, 'nombre': 'Copa Test', 'formato': 'GRUPOS_ELIMINATORIA', 'temporada': '2026', 'estado': torneoEstado},
     'equipos': [
       {'id': 1, 'nombre': 'Leones'},
       {'id': 2, 'nombre': 'Tigres'},
     ],
-    'fases': [
-      {'id': 1, 'nombre': 'Fase de grupos', 'orden': 1, 'tipo': 'GRUPOS'},
-      {'id': 2, 'nombre': 'Semifinales', 'orden': 2, 'tipo': 'ELIMINATORIA'},
-    ],
+    'fases': fases ??
+        [
+          {'id': 1, 'nombre': 'Fase de grupos', 'orden': 1, 'tipo': 'GRUPOS'},
+          {'id': 2, 'nombre': 'Semifinales', 'orden': 2, 'tipo': 'ELIMINATORIA'},
+        ],
     'partidos': partidos ??
         [
           _partido(1, 1, _ahora.add(const Duration(hours: 5))), // abierto
-          _partido(2, 1, _ahora.add(const Duration(minutes: 3)), pron: {'goles_local_pred': 2, 'goles_visita_pred': 1}), // cerrado (<5 min)
+          _partido(2, 1, _ahora.add(const Duration(minutes: 3)), pron: {'goles_local_pred': 2, 'goles_visita_pred': 1}), // cerrado
           _partido(3, 2, _ahora.add(const Duration(days: 2))), // eliminatoria
         ],
     'tabla': [
-      {'id': 1, 'usuario': 5, 'username': 'a', 'puntos_totales': 9, 'fecha_union': '2026-01-01T00:00:00Z', 'posicion': 1},
-      {'id': 2, 'usuario': 6, 'username': 'b', 'puntos_totales': 6, 'fecha_union': '2026-01-01T00:00:00Z', 'posicion': 2},
-      {'id': 3, 'usuario': 7, 'username': 'yo', 'puntos_totales': 6, 'fecha_union': '2026-01-01T00:00:00Z', 'posicion': 2},
-      {'id': 4, 'usuario': 8, 'username': 'd', 'puntos_totales': 0, 'fecha_union': '2026-01-01T00:00:00Z', 'posicion': 4},
+      {'id': 1, 'usuario': 5, 'username': 'a', 'puntos_totales': 9, 'posicion': 1},
+      {'id': 2, 'usuario': 6, 'username': 'b', 'puntos_totales': 6, 'posicion': 2},
+      {'id': 3, 'usuario': 7, 'username': 'yo', 'puntos_totales': 6, 'posicion': 2},
+      {'id': 4, 'usuario': 8, 'username': 'd', 'puntos_totales': 0, 'posicion': 4},
     ],
   }, offlineDesde: offline);
 }
 
-Future<void> _montar(WidgetTester tester, Widget hijo) async {
+/// Repositorio falso: guarda en memoria y falla para los partidos indicados.
+class _RepoFalso extends QuinielasRepository {
+  _RepoFalso({this.fallan = const {}}) : super(Dio(), MemoryCacheStore());
+
+  final Map<int, AppException> fallan;
+  final enviados = <int, Marcador>{};
+
+  @override
+  Future<void> guardarPronostico(int quinielaId, int partidoId, Marcador m) async {
+    final e = fallan[partidoId];
+    if (e != null) throw e;
+    enviados[partidoId] = m;
+  }
+}
+
+Future<void> _montar(WidgetTester tester, Widget hijo, {QuinielasRepository? repo}) async {
+  tester.view.physicalSize = const Size(840, 3600);
+  tester.view.devicePixelRatio = 2;
+  addTearDown(tester.view.reset);
   await tester.pumpWidget(ProviderScope(
-    overrides: [serverClockProvider.overrideWithValue(ServerClock(reloj: () => _ahora))],
-    child: MaterialApp(home: Scaffold(body: hijo)),
+    overrides: [
+      serverClockProvider.overrideWithValue(ServerClock(reloj: () => _ahora)),
+      if (repo != null) quinielasRepositoryProvider.overrideWithValue(repo),
+      quinielaVistaProvider.overrideWith((ref, id) async => _vista()),
+    ],
+    child: MaterialApp(theme: StreakTheme.dark(), home: Scaffold(body: SingleChildScrollView(child: hijo))),
   ));
   await tester.pump();
 }
 
-Finder _boton(String tooltip) =>
-    find.ancestor(of: find.byTooltip(tooltip), matching: find.byType(IconButton));
+Widget _tab(QuinielaVista v) => TabPendientes(vista: v, quinielaId: 1);
+
+BotonPrimario _boton(WidgetTester t) => t.widget<BotonPrimario>(find.byType(BotonPrimario));
 
 void main() {
-  setUpAll(() => initializeDateFormatting('es'));
-
-  Widget tab(QuinielaVista v) => TabPendientes(vista: v, quinielaId: 1, onRefresh: () async {});
-
-  testWidgets('un partido abierto se edita y uno cerrado no', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(420, 1600));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _montar(tester, tab(_vista()));
+  testWidgets('chips de cierre, casillas editables solo en los abiertos y cerrado con su pronóstico', (tester) async {
+    await _montar(tester, _tab(_vista()));
 
     expect(find.byType(PartidoPendienteCard), findsNWidgets(3));
-    expect(find.text('GUARDAR PRONÓSTICO'), findsNWidgets(2)); // abierto + eliminatoria (sin pronóstico)
-    expect(find.text('Cierra hoy a las 16:55'), findsOneWidget); // +5 h: cierra 5 min antes
-    expect(find.text('Cierra mié 14 · 11:55'), findsOneWidget); // +2 días: dice el día
-
-    // El de +3 min ya está cerrado (cierra 5 min antes) y muestra el pronóstico guardado.
-    expect(find.textContaining('Cerrado · los pronósticos cierran 5 min antes'), findsOneWidget);
-    expect(find.text('Tu pronóstico: 2 - 1'), findsOneWidget);
-
-    // Steppers: en el abierto suben; en el cerrado están deshabilitados.
-    final sumar = _boton('Sumar gol a Leones');
-    expect(sumar, findsNWidgets(2), reason: 'el cerrado no muestra steppers');
-    final botones = tester.widgetList<IconButton>(sumar).toList();
-    expect(botones.every((b) => b.onPressed != null), isTrue);
+    expect(find.text('Cierra en 4 h 55 min'), findsOneWidget, reason: '+5 h: cierra 5 min antes');
+    expect(find.text('Cierra mié 14 · 11:55'), findsOneWidget, reason: '+2 días: dice el día');
+    expect(find.text('Cerrado'), findsOneWidget);
+    expect(find.byType(TextField), findsNWidgets(4), reason: 'dos partidos abiertos × 2 casillas');
+    // El cerrado muestra lo guardado, sin casillas editables.
+    expect(find.bySemanticsLabel(RegExp('Tu pronóstico para Leones')), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
   });
 
-  testWidgets('el cierre dice hoy, mañana o el día', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(420, 1600));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+  testWidgets('usa cierre_pronosticos del servidor (RN-37)', (tester) async {
+    // Empieza en 20 min, pero el servidor dice que ya cerró hace 1 min.
     await _montar(
-      tester,
-      tab(_vista(partidos: [
-        _partido(1, 1, _ahora.add(const Duration(hours: 5))),
-        _partido(2, 1, _ahora.add(const Duration(days: 1, hours: 5))),
-        _partido(3, 1, _ahora.add(const Duration(days: 3, hours: 5))),
-      ])),
-    );
-    expect(find.text('Cierra hoy a las 16:55'), findsOneWidget);
-    expect(find.text('Cierra mañana a las 16:55'), findsOneWidget);
-    expect(find.text('Cierra jue 15 · 16:55'), findsOneWidget);
+        tester,
+        _tab(_vista(partidos: [
+          _partido(1, 1, _ahora.add(const Duration(minutes: 20)), cierre: _ahora.subtract(const Duration(minutes: 1))),
+        ])));
+    expect(find.text('Cerrado'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
   });
 
-  testWidgets('los steppers van de 0 a 20 y habilitan guardar', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(420, 1600));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _montar(tester, tab(_vista(partidos: [_partido(1, 1, _ahora.add(const Duration(hours: 5)), pron: {'goles_local_pred': 20, 'goles_visita_pred': 0})])));
-
-    IconButton boton(String tooltip) => tester.widget<IconButton>(_boton(tooltip));
-    expect(boton('Sumar gol a Leones').onPressed, isNull, reason: 'tope 20');
-    expect(boton('Restar gol a Tigres').onPressed, isNull, reason: 'piso 0');
-    expect(find.text('GUARDADO ✓'), findsOneWidget);
-
-    await tester.tap(find.byTooltip('Restar gol a Leones'));
-    await tester.pump();
-    expect(find.text('19'), findsOneWidget);
-    expect(find.text('GUARDAR PRONÓSTICO'), findsOneWidget);
+  testWidgets('en juego: chip "En juego" y sin casillas', (tester) async {
+    await _montar(tester, _tab(_vista(partidos: [_partido(1, 1, _ahora.subtract(const Duration(minutes: 10)), estado: 'EN_JUEGO')])));
+    expect(find.text('En juego'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
   });
 
-  testWidgets('eliminatoria muestra el aviso de los 90 minutos (RN-23)', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(420, 1600));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _montar(tester, tab(_vista()));
-    // Solo el partido de Semifinales lo lleva.
+  testWidgets('eliminatoria muestra "Cuenta el tiempo reglamentario (90 min)" (RN-23)', (tester) async {
+    await _montar(tester, _tab(_vista()));
     expect(find.text(avisoNoventa), findsOneWidget);
-    expect(find.text('SEMIFINALES'), findsOneWidget);
-    expect(find.text('FASE DE GRUPOS'), findsOneWidget);
+    expect(find.text('Semifinales'), findsOneWidget);
+    expect(find.text('Fase de grupos'), findsOneWidget);
   });
 
-  testWidgets('partido cerrado sin pronóstico: "No pronosticaste" y "vs", sin guiones sueltos', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(420, 1600));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _montar(tester, tab(_vista(partidos: [_partido(1, 1, _ahora.add(const Duration(minutes: 2)))])));
-    expect(find.text('No pronosticaste'), findsOneWidget);
-    expect(find.text('vs'), findsOneWidget);
-    expect(find.text('–'), findsNothing);
-    expect(find.text('– –'), findsNothing);
-    expect(find.byTooltip('Sumar gol a Leones'), findsNothing);
+  testWidgets('el tipo normalizado del backend manda: LIGA llamada "Gran final" no lleva el aviso', (tester) async {
+    await _montar(
+        tester,
+        _tab(_vista(
+          fases: [
+            {'id': 1, 'nombre': 'Gran final', 'orden': 1, 'tipo': 'LIGA'},
+          ],
+          partidos: [_partido(1, 1, _ahora.add(const Duration(hours: 5)))],
+        )));
+    expect(find.text(avisoNoventa), findsNothing);
   });
 
-  testWidgets('sin conexión no se puede guardar', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(420, 1600));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _montar(tester, tab(_vista(offline: DateTime.utc(2026, 10, 12, 10))));
-    expect(find.text('GUARDAR PRONÓSTICO'), findsNothing);
-    expect(find.text('Sin conexión: no se puede guardar'), findsWidgets);
+  testWidgets('UN solo botón amarillo, deshabilitado hasta que se escribe algo', (tester) async {
+    await _montar(tester, _tab(_vista()), repo: _RepoFalso());
+    expect(find.byType(BotonPrimario), findsOneWidget);
+    expect(find.text(textoGuardarPronosticos), findsOneWidget);
+    expect(_boton(tester).onPressed, isNull);
+
+    await tester.enterText(find.byType(TextField).at(0), '2');
+    await tester.pump();
+    expect(_boton(tester).onPressed, isNotNull);
   });
 
-  testWidgets('torneo finalizado: solo lectura', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(420, 1600));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await _montar(tester, tab(_vista(torneoEstado: 'FINALIZADO')));
-    expect(find.text('GUARDAR PRONÓSTICO'), findsNothing);
-    expect(find.text('Quiniela finalizada · solo lectura'), findsWidgets);
+  testWidgets('las casillas solo aceptan 0 a 20 (RN-35)', (tester) async {
+    await _montar(tester, _tab(_vista()));
+    final campo = find.byType(TextField).at(0);
+    await tester.enterText(campo, '20');
+    await tester.pump();
+    expect(find.text('20'), findsOneWidget);
+    await tester.enterText(campo, '21');
+    await tester.pump();
+    expect(find.text('21'), findsNothing);
+    expect(const GolesFormatter().formatEditUpdate(const TextEditingValue(text: '7'), const TextEditingValue(text: '75')).text, '7');
+  });
+
+  testWidgets('guarda todos los cambiados; un fallo parcial se informa y conserva lo escrito', (tester) async {
+    final repo = _RepoFalso(fallan: {
+      3: const AppException(codigo: 'PRONOSTICOS_CERRADOS', mensaje: 'El plazo para pronosticar este partido ha terminado.'),
+    });
+    await _montar(tester, _tab(_vista()), repo: repo);
+    final campos = find.byType(TextField);
+    await tester.enterText(campos.at(0), '2');
+    await tester.enterText(campos.at(1), '1');
+    await tester.enterText(campos.at(2), '0');
+    await tester.enterText(campos.at(3), '3');
+    await tester.pump();
+
+    await tester.tap(find.text(textoGuardarPronosticos));
+    await tester.pump();
+    await tester.pump();
+
+    expect(repo.enviados, {1: const Marcador(2, 1)}, reason: 'un POST por partido; el 3 falló');
+    expect(find.text('No se guardó: el plazo para este partido ya cerró.'), findsOneWidget);
+    expect(find.text('Se guardaron 1 de 2. No se guardó: Leones – Tigres.'), findsOneWidget);
+    // Lo escrito en el que falló sigue ahí.
+    expect(tester.widget<TextField>(campos.at(2)).controller!.text, '0');
+    expect(tester.widget<TextField>(campos.at(3)).controller!.text, '3');
+  });
+
+  testWidgets('marcador a medias: pide completar los dos y no envía nada', (tester) async {
+    final repo = _RepoFalso();
+    await _montar(tester, _tab(_vista()), repo: repo);
+    await tester.enterText(find.byType(TextField).at(0), '2');
+    await tester.pump();
+    await tester.tap(find.text(textoGuardarPronosticos));
+    await tester.pump();
+    expect(repo.enviados, isEmpty);
+    expect(find.text('Completa los dos marcadores.'), findsOneWidget);
+  });
+
+  testWidgets('sin conexión: el botón queda deshabilitado', (tester) async {
+    await _montar(tester, _tab(_vista(offline: DateTime.utc(2026, 10, 12, 10))));
+    await tester.enterText(find.byType(TextField).at(0), '2');
+    await tester.pump();
+    expect(_boton(tester).onPressed, isNull);
+    expect(find.text('Sin conexión: no se puede guardar'), findsOneWidget);
+  });
+
+  testWidgets('torneo finalizado: solo lectura, sin casillas ni botón', (tester) async {
+    await _montar(tester, _tab(_vista(torneoEstado: 'FINALIZADO')));
+    expect(find.byType(BotonPrimario), findsNothing);
+    expect(find.byType(TextField), findsNothing);
   });
 
   testWidgets('sin partidos pendientes muestra el estado vacío', (tester) async {
-    await _montar(tester, tab(_vista(partidos: [])));
+    await _montar(tester, _tab(_vista(partidos: [])));
     expect(find.text('No hay partidos pendientes por ahora.'), findsOneWidget);
   });
 
-  testWidgets('encabezado: "2.º de 4" con empate compartido y puntos', (tester) async {
-    await _montar(tester, Encabezado(vista: _vista(), usuarioId: 7));
-    expect(find.text('2.º de 4'), findsOneWidget);
-    expect(find.text('6 pts'), findsOneWidget);
-    expect(find.text('Copa Test'), findsOneWidget);
-    expect(find.text('Mi quiniela'), findsOneWidget);
+  group('cabecera', () {
+    testWidgets('usa el resumen del backend: torneo · participantes, código, puesto y puntos', (tester) async {
+      await _montar(tester, CabeceraQuiniela(vista: _vista(), usuarioId: 7));
+      expect(find.text('Mi quiniela'), findsOneWidget);
+      expect(find.text('Copa Test · 4 participantes'), findsOneWidget);
+      expect(find.text('ABC234'), findsOneWidget);
+      expect(find.text('2.º'), findsOneWidget);
+      expect(find.text('6'), findsOneWidget);
+      expect(find.text('En juego'), findsNothing);
+    });
+
+    testWidgets('sin resumen recurre a /tabla/ (empate compartido 2.º)', (tester) async {
+      await _montar(tester, CabeceraQuiniela(vista: _vista(conResumen: false), usuarioId: 7));
+      expect(tester.widget<Text>(find.byKey(const ValueKey('puesto'))).data, '2.º');
+      expect(tester.widget<Text>(find.byKey(const ValueKey('puntos'))).data, '6');
+    });
+
+    testWidgets('chip "En juego" si hay un partido en juego', (tester) async {
+      await _montar(
+          tester,
+          CabeceraQuiniela(
+              vista: _vista(partidos: [_partido(1, 1, _ahora.subtract(const Duration(minutes: 10)), estado: 'EN_JUEGO')]),
+              usuarioId: 7));
+      expect(find.text('En juego'), findsOneWidget);
+    });
   });
 }
