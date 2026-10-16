@@ -180,6 +180,19 @@ class AuthRepository {
 
   Future<void> logout() => _storage.clearSession();
 
+  /// DELETE /usuarios/me/ con `{"password", "confirmar": true}` (borrado permanente, 204).
+  /// 400 CREDENCIALES_INVALIDAS (contraseña incorrecta) o PASSWORD_REQUERIDO. Tras el 204 los JWT
+  /// dejan de funcionar: se borra la sesión guardada y la copia local del perfil.
+  Future<void> eliminarCuenta(String password) async {
+    try {
+      await _dio.delete(ApiConstants.usuarioMe, data: {'password': password, 'confirmar': true});
+    } on DioException catch (e) {
+      throw AppException.fromDioError(e);
+    }
+    await _storage.clearSession();
+    await _cache?.limpiar();
+  }
+
   /// GET /usuarios/me/. Con contraseña temporal (RN-07) el backend responde
   /// 403 ACCESO_DENEGADO también aquí; no hay datos de perfil hasta cambiarla.
   Future<Usuario> _cargarPerfil(String username) async {
