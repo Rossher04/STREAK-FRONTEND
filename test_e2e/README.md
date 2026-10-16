@@ -19,18 +19,6 @@ No corren con `flutter test` normal (necesitan servidor). Pasos:
 El backend se vuelve a sembrar cada vez que se arranca; `caro` (contraseña temporal) solo sirve
 una vez por arranque, así que hay que reiniciar el backend antes de repetir la corrida.
 
-## Capturas de pantalla (opcional)
-
-`test_e2e/capturas_test.dart` regenera `docs/capturas/*.png` y ensucia el árbol de git, así que **no corre
-por defecto** (queda omitido). Para generarlas, con el backend levantado:
-
-```
-flutter test test_e2e -t capturas --dart-define=CAPTURAS=true --dart-define=API_BASE_URL=http://127.0.0.1:8000/api -j 1
-```
-
-(Hacen falta las dos cosas: el tag `capturas` selecciona el archivo y `CAPTURAS=true` activa los tests.
-`package:test` no permite un `exclude_tags` por defecto que `-t` pueda anular, por eso el doble requisito.)
-
 ## Prueba manual del pago PRO (requiere claves de prueba de Stripe)
 
 Los e2e solo cubren lo que no necesita Stripe (503 sin configurar, historial de pagos vacío, estado).
@@ -49,11 +37,11 @@ El pago completo se prueba a mano en un teléfono/emulador Android:
    (tras ~30 s: "Pago recibido, activando PRO…" y botón "COMPROBAR DE NUEVO").
 6. Un pago de prueba deja al usuario como PRO de verdad en esa base de datos: usa usuarios de prueba.
 
-## Backend propio en otro puerto (fases 6 y 7)
+## Backend en otro puerto
 
-Para no chocar con otro backend local, `admin_django.dart` acepta `STREAK_BACKEND_DIR`, `STREAK_E2E_DB` y
-`STREAK_E2E_MEDIA`. La corrida de las fases 6-7 usó `.e2e/fase67.sqlite3` (ignorado por git) en
-`127.0.0.1:8015`:
+Para no chocar con otro backend local, `run_backend.ps1` acepta `-Puerto`, `-BaseDatos` y `-Media`, y
+`admin_django.dart` acepta `STREAK_BACKEND_DIR`, `STREAK_E2E_DB` y `STREAK_E2E_MEDIA`. Por ejemplo, con el
+backend en `127.0.0.1:8015`:
 
 ```
 flutter test test_e2e/pro_e2e_test.dart test_e2e/eliminar_cuenta_e2e_test.dart --dart-define=API_BASE_URL=http://127.0.0.1:8015/api -j 1

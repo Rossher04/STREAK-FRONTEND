@@ -15,7 +15,7 @@ class AppConstants {
   static const int maxParticipantesPro = 100;
 
   // Correo de soporte/privacidad. Se define al compilar: --dart-define=SUPPORT_EMAIL=soporte@dominio.com
-  // (el valor por defecto es un marcador: ver docs/play_store.md).
+  // (el valor por defecto es un marcador y el build de release lo rechaza).
   static const String correoSoporte = String.fromEnvironment('SUPPORT_EMAIL', defaultValue: '[CORREO_SOPORTE]');
 
   // Plan Pro (RN-61 a RN-65): el precio y la moneda se leen de GET /pro/estado/ (EstadoPro).
@@ -24,7 +24,7 @@ class AppConstants {
   static const String stripePublishableKey = String.fromEnvironment('STRIPE_PUBLISHABLE_KEY');
 
   // Recuperar contraseña (pantalla 03). DECISIÓN PENDIENTE: enlace o contraseña temporal. El backend envía un
-  // ENLACE de un solo uso válido 1 hora (docs/API.md "Recuperacion y sesiones"), así que el texto describe el enlace.
+  // ENLACE de un solo uso válido 1 hora (API del backend, "Recuperacion y sesiones"), así que el texto describe el enlace.
   // Si se decide la contraseña temporal, solo hay que cambiar estas constantes.
   static const String textoRecuperarPassword =
       'Escribe el correo con el que te registraste y te enviaremos las instrucciones para recuperar tu acceso.';

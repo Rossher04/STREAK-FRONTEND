@@ -4,9 +4,8 @@ import '../../../../core/theme/streak_theme.dart';
 import '../../../../core/widgets/botones.dart';
 import '../../../../core/widgets/estructura.dart';
 
-// Resúmenes que describen lo que la app hace de verdad (fuente: docs/privacidad.md, borrador del equipo).
-// TODO(publicacion): enlazar también la URL pública de la política de privacidad cuando el equipo la publique
-// (docs/play_store.md); hoy no existe una URL real y no se inventa.
+// Resúmenes que describen lo que la app hace de verdad (resumen de la política de privacidad del equipo).
+// TODO(publicacion): enlazar también la URL pública de la política de privacidad cuando el equipo la publique; hoy no existe una URL real y no se inventa.
 
 const _terminos = [
   'STREAK es un juego de quinielas de fútbol por puntos entre amigos. No se juega dinero entre participantes.',
