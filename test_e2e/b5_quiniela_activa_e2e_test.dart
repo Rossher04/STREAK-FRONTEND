@@ -56,6 +56,38 @@ void main() {
     final fila = v.filaDe(ana.usuarioId)!;
     expect(etiquetaPuesto(fila.posicion, v.tabla.length), '1.º de 3');
     expect(fila.puntos, 12);
+
+    // Resumen del backend para la cabecera (16/17/19).
+    expect(v.torneoNombre, 'Torneo B5 E2E');
+    expect(v.inscritos, 3);
+    expect(v.miPuesto(ana.usuarioId), 1);
+    expect(v.misPuntos(ana.usuarioId), 12);
+    expect(v.resumen!.miPosicion, 1, reason: 'viene de /quinielas/{id}/, no de /tabla/');
+    expect(v.hayEnJuego, isTrue);
+  });
+
+  test('cabecera de dani: comparte el 2.º puesto con beto (resumen = tabla)', () async {
+    final dani = await AppE2E.crear();
+    addTearDown(dani.cerrar);
+    await dani.auth.login('dani', clave);
+    final v = await dani.vista('Quiniela B5');
+    expect(v.miPuesto(dani.usuarioId), 2);
+    expect(v.misPuntos(dani.usuarioId), 8);
+    expect(v.filaDe(dani.usuarioId)!.posicion, 2);
+  });
+
+  test('tabla trae foto y es_pro; partidos traen cierre del servidor, tipo de fase y equipos', () async {
+    final v = await ana.vista('Quiniela B5');
+    expect({for (final f in v.tabla) f.username: f.esPro}, {'ana': false, 'beto': true, 'dani': false});
+    for (final p in v.partidos) {
+      expect(p.cierrePronosticos, p.fechaHora.subtract(const Duration(minutes: 5)), reason: 'RN-37 en el servidor');
+      expect(p.faseTipo, isIn(['GRUPOS', 'ELIMINATORIA']));
+      expect(p.equipoLocal?.nombre, v.nombreEquipo(p.equipoLocalId));
+    }
+    final semi = _partido(v, 'Leones', 'Aguilas', estado: 'PROGRAMADO');
+    expect(v.esEliminatoria(semi), isTrue);
+    expect(_partido(v, 'Leones', 'Tigres').pronosticosAbiertos, isFalse, reason: 'a 4 min: cerrado en el servidor');
+    expect(_partido(v, 'Aguilas', 'Lobos').pronosticosAbiertos, isTrue);
   });
 
   test('tabla: empates comparten posición (1, 2, 2) y orden por puntos', () async {
@@ -118,6 +150,8 @@ void main() {
           fechaHora: p.fechaHora,
           ahoraServidor: ahora,
           torneoFinalizado: v.torneoFinalizado,
+          cierreServidor: p.cierrePronosticos,
+          abiertoServidor: p.pronosticosAbiertos,
         );
 
     // Partido que ya empezó pero sigue PROGRAMADO: el backend lo rechaza.
@@ -128,8 +162,12 @@ void main() {
       throwsA(isA<AppException>().having((e) => e.codigo, 'codigo', 'PRONOSTICOS_CERRADOS')),
     );
 
-    // A ~4 min del inicio el backend aún aceptaría, pero la app ya lo cierra (RN-37: 5 min antes).
+    // A ~4 min del inicio: el backend ya cierra (RN-37, a86fe6d) y la app también.
     final cierre = _partido(v, 'Leones', 'Tigres');
+    await expectLater(
+      ana.repo.guardarPronostico(id, cierre.id, const Marcador(1, 1)),
+      throwsA(isA<AppException>().having((e) => e.codigo, 'codigo', 'PRONOSTICOS_CERRADOS')),
+    );
     expect(cierre.fechaHora.difference(ahora), lessThan(const Duration(minutes: 5)));
     expect(editable(cierre), isFalse);
 
@@ -149,6 +187,12 @@ void main() {
     final deBeto = oculto.participantes.firstWhere((p) => p.username == 'beto');
     expect(deBeto.pronostico, isNull);
     expect(deBeto.puntos, 0);
+    // RN-39: el backend dice OCULTO (beto sí pronosticó) y no se distingue de dani, que no pronosticó.
+    expect(deBeto.estado, EstadoPronostico.oculto);
+    expect(oculto.participantes.firstWhere((p) => p.username == 'dani').estado, EstadoPronostico.oculto);
+    expect(deBeto.esPro, isTrue, reason: 'beto está sembrado como PRO');
+    // El propio nunca está oculto (visible o no registrado según el orden de las pruebas).
+    expect(oculto.participantes.firstWhere((p) => p.username == 'ana').estado, isNot(EstadoPronostico.oculto));
     expect(futuro.fechaHora.isAfter(ana.container.read(serverClockProvider).ahora()), isTrue);
 
     // Ya jugado: se ven los de todos, con sus puntos.
@@ -160,6 +204,7 @@ void main() {
     expect(porNombre['beto']!.pronostico, const Marcador(3, 0));
     expect(porNombre['beto']!.puntos, 3);
     expect(porNombre['dani']!.puntos, 5);
+    expect(porNombre['beto']!.estado, EstadoPronostico.visible);
     expect(visible.partido.resultado, const Marcador(2, 1));
   });
 
@@ -177,7 +222,8 @@ void main() {
     expect(exacto.pronostico, const Marcador(3, 0));
     expect(exacto.puntos, 3);
     // El pronóstico futuro de beto sigue oculto para ana.
-    expect(d.partidos.where((p) => p.estado == 'PROGRAMADO').every((p) => p.pronostico == null), isTrue);
+    final noIniciados = d.partidos.where((p) => p.estado == 'PROGRAMADO' && p.fechaHora.isAfter(DateTime.now().toUtc()));
+    expect(noIniciados.every((p) => p.pronostico == null && p.estadoPronostico == EstadoPronostico.oculto), isTrue);
 
     // Y él sí ve el suyo.
     final propio = await beto.repo.participanteDetalle(id, beto.usuarioId);
@@ -218,7 +264,7 @@ void main() {
     expect(enLinea.offline, isFalse);
     expect(ana.cache.datos.keys, contains('u${ana.usuarioId}_quiniela_$id'));
 
-    final sinRed = Dio(BaseOptions(baseUrl: 'http://127.0.0.1:8000/api'))..httpClientAdapter = _SinRed();
+    final sinRed = Dio(BaseOptions(baseUrl: 'http://127.0.0.1:1/api'))..httpClientAdapter = _SinRed();
     final repoOffline = QuinielasRepository(sinRed, ana.cache);
     final guardada = await repoOffline.vista(id, usuarioId: ana.usuarioId);
     expect(guardada.offline, isTrue);
