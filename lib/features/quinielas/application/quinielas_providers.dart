@@ -39,6 +39,7 @@ final quinielaProvider = FutureProvider.autoDispose.family<Quiniela, int>((ref, 
 void refrescarQuinielas(WidgetRef ref) {
   ref.invalidate(misQuinielasProvider);
   ref.invalidate(historialProvider);
+  ref.invalidate(historialResumenProvider);
 }
 
 /// Quiniela activa completa (B5): torneo, equipos, fases, partidos con mi pronóstico y tabla.
@@ -55,4 +56,10 @@ final partidoDetalleProvider =
 final participanteDetalleProvider =
     FutureProvider.autoDispose.family<ParticipanteDetalle, ({int quinielaId, int usuarioId})>((ref, k) {
   return ref.watch(quinielasRepositoryProvider).participanteDetalle(k.quinielaId, k.usuarioId);
+});
+
+/// Historial (21): quinielas de torneos finalizados con su resumen (solo lectura, RN-33).
+final historialResumenProvider = FutureProvider.autoDispose<Listado<ResumenQuiniela>>((ref) {
+  final usuarioId = ref.watch(authControllerProvider.select((s) => s.user?.id)) ?? 0;
+  return ref.watch(quinielasRepositoryProvider).historialResumen(usuarioId);
 });

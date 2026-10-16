@@ -1,8 +1,9 @@
 /// Reglas puras de la quiniela activa (B5), sin dependencias de Flutter ni de red.
 library;
 
-/// Minutos antes del inicio en que la app cierra la edición (RN-37).
-/// El backend cierra recién al llegar fecha_hora (views_api.py: PRONOSTICOS_CERRADOS).
+/// Minutos antes del inicio en que se cierra la edición (RN-37). Desde a86fe6d el backend publica
+/// `cierre_pronosticos` (inicio − 5 min) y rechaza después con PRONOSTICOS_CERRADOS; este valor solo es
+/// el respaldo cuando la respuesta no trae ese campo.
 const minutosCierre = 5;
 
 /// Rango del editor de marcador (RN-35).
@@ -46,29 +47,50 @@ String _normalizar(String s) => s
 
 const _marcasEliminatoria = ['ELIM', 'OCTAV', 'CUART', 'SEMI', 'FINAL'];
 
-/// Heurística: Fase.tipo es texto libre (models.py), así que se considera fase de
-/// eliminación si `tipo` o `nombre` contienen ELIM, OCTAV, CUART, SEMI o FINAL
-/// (sin distinguir mayúsculas ni tildes). Una fase de liga llamada "Ronda final"
-/// daría un falso positivo; el backend debería exponer un tipo cerrado.
+/// Tipos de fase que el backend normaliza (Fase.Tipo, a86fe6d).
+const tiposFase = {'LIGA', 'GRUPOS', 'ELIMINATORIA'};
+
+/// ¿La fase es eliminatoria? (RN-23: solo cuenta el tiempo reglamentario).
+/// El backend ya normaliza `tipo` a LIGA, GRUPOS o ELIMINATORIA y se usa ese valor. Solo si llega un tipo
+/// desconocido (datos antiguos o una copia guardada) se recurre a la heurística por palabras clave en
+/// `tipo` o `nombre` (ELIM, OCTAV, CUART, SEMI, FINAL, sin distinguir mayúsculas ni tildes).
 bool esFaseEliminatoria(String tipo, String nombre) {
+  final t = tipo.trim().toUpperCase();
+  if (tiposFase.contains(t)) return t == 'ELIMINATORIA';
   final texto = '${_normalizar(tipo)} ${_normalizar(nombre)}';
   return _marcasEliminatoria.any(texto.contains);
 }
 
-/// Instante de cierre de pronósticos en la app: 5 minutos antes de fecha_hora.
-DateTime cierreDe(DateTime fechaHora) =>
-    fechaHora.subtract(const Duration(minutes: minutosCierre));
+/// Instante de cierre de pronósticos: el `cierre_pronosticos` del servidor si viene (RN-37) o, si no,
+/// 5 minutos antes de fecha_hora.
+DateTime cierreDe(DateTime fechaHora, {DateTime? cierreServidor}) =>
+    cierreServidor ?? fechaHora.subtract(const Duration(minutes: minutosCierre));
 
 /// ¿Se puede editar el pronóstico de un partido? (RN-33, RN-37)
-/// Solo PROGRAMADO, con el torneo no finalizado y antes del cierre (hora del servidor).
+/// Solo PROGRAMADO, con el torneo no finalizado y antes del cierre según la hora del servidor.
+/// Si el servidor ya dijo `pronosticos_abiertos: false`, sigue cerrado (el tiempo solo avanza).
 bool puedeEditarPronostico({
   required String estadoPartido,
   required DateTime fechaHora,
   required DateTime ahoraServidor,
   required bool torneoFinalizado,
+  DateTime? cierreServidor,
+  bool? abiertoServidor,
 }) {
-  if (torneoFinalizado || estadoPartido != 'PROGRAMADO') return false;
-  return ahoraServidor.isBefore(cierreDe(fechaHora));
+  if (torneoFinalizado || estadoPartido != 'PROGRAMADO' || abiertoServidor == false) return false;
+  return ahoraServidor.isBefore(cierreDe(fechaHora, cierreServidor: cierreServidor));
+}
+
+/// Texto del chip de cierre cuando falta poco (≤ 24 h): "Cierra en 1 h 20 min", "Cierra en 8 min",
+/// "Cierra en menos de 1 min". null si falta más de un día o ya cerró (entonces se usa [textoCierre]).
+String? textoCierraEn(DateTime cierre, DateTime ahoraServidor) {
+  final falta = cierre.difference(ahoraServidor);
+  if (falta <= Duration.zero || falta > const Duration(hours: 24)) return null;
+  final h = falta.inHours;
+  final m = falta.inMinutes % 60;
+  if (h == 0 && m == 0) return 'Cierra en menos de 1 min';
+  if (h == 0) return 'Cierra en $m min';
+  return m == 0 ? 'Cierra en $h h' : 'Cierra en $h h $m min';
 }
 
 const _diasSemana = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom'];

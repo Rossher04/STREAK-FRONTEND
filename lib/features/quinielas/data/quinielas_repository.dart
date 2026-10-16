@@ -159,4 +159,19 @@ class QuinielasRepository {
         final data = await _get(ApiConstants.participanteDetalle(quinielaId, usuarioId));
         return ParticipanteDetalle.fromJson(data as Map<String, dynamic>);
       });
+
+  /// Historial (21) con el resumen del backend (torneo, inscritos, mis puntos y mi puesto) y copia por
+  /// usuario para leerlo sin conexión (RN-74). Comparte la copia con [historialConCopia]: es el mismo JSON.
+  Future<Listado<ResumenQuiniela>> historialResumen(int usuarioId) async {
+    final clave = 'u${usuarioId}_historial';
+    try {
+      final raw = await _call(() => _get(ApiConstants.quinielasHistorial));
+      await _guardarCopia(clave, raw);
+      return Listado(items: _lista(raw).map(ResumenQuiniela.fromJson).toList());
+    } on AppException catch (e) {
+      final copia = await _copiaSiSinRed(e, clave);
+      if (copia == null) rethrow;
+      return Listado(items: _lista(copia.raw).map(ResumenQuiniela.fromJson).toList(), offlineDesde: copia.desde);
+    }
+  }
 }
