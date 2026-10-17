@@ -63,6 +63,10 @@ class AppException implements Exception {
       // Errores por campo: se muestra el primero con su nombre en español.
       final detalle = _primerDetalle(errorObj['detalles']);
       if (detalle != null) mensaje = detalle;
+      // RN-06: la contraseña temporal vence a las 24 horas.
+      if (codigo == 'PASSWORD_TEMPORAL_VENCIDA') {
+        mensaje = 'Tu contraseña temporal venció. Pide una nueva en "¿Olvidaste tu contraseña?".';
+      }
       return AppException(codigo: codigo, mensaje: mensaje, campos: _porCampo(errorObj['detalles']));
     }
 

@@ -85,7 +85,7 @@ class _RecuperarPasswordScreenState extends ConsumerState<RecuperarPasswordScree
                     ),
                   ),
                   const SizedBox(height: 24),
-                  BotonPrimario(texto: 'Enviar instrucciones', cargando: _cargando, onPressed: _enviar),
+                  BotonPrimario(texto: 'Enviar contraseña temporal', cargando: _cargando, onPressed: _enviar),
                 ],
         ),
       ),

@@ -14,6 +14,14 @@ DioException _err(int status, dynamic data, {String path = '/quinielas/'}) {
 
 void main() {
   group('AppException.fromDioError', () {
+    test('contraseña temporal vencida (RN-06) da un mensaje claro', () {
+      final e = AppException.fromDioError(_err(400, {
+        'error': {'codigo': 'PASSWORD_TEMPORAL_VENCIDA', 'mensaje': 'Tu contrasena temporal vencio.'}
+      }, path: '/auth/login/'));
+      expect(e.codigo, 'PASSWORD_TEMPORAL_VENCIDA');
+      expect(e.mensaje, contains('venció'));
+    });
+
     test('formato RN-72 muestra el mensaje', () {
       final e = AppException.fromDioError(_err(409, {
         'error': {'codigo': 'QUINIELA_LLENA', 'mensaje': 'La quiniela esta llena'}

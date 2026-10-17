@@ -229,7 +229,7 @@ void main() {
         _AuthFalso(error: const AppException(codigo: 'CORREO_NO_CONFIGURADO', mensaje: 'x')),
       );
       await _escribir(tester, 'Correo electrónico', 'ana@e2e.test');
-      await tester.tap(find.text('Enviar instrucciones'));
+      await tester.tap(find.text('Enviar contraseña temporal'));
       await tester.pumpAndSettle();
       expect(find.textContaining('no está disponible por ahora'), findsOneWidget);
     });
@@ -237,7 +237,7 @@ void main() {
     testWidgets('correo inválido: error del campo con ejemplo', (tester) async {
       await _montar(tester, const RecuperarPasswordScreen(), _AuthFalso());
       await _escribir(tester, 'Correo electrónico', 'nombre@correo');
-      await tester.tap(find.text('Enviar instrucciones'));
+      await tester.tap(find.text('Enviar contraseña temporal'));
       await tester.pumpAndSettle();
       expect(find.text('Escribe un correo válido, por ejemplo nombre@correo.com'), findsOneWidget);
     });

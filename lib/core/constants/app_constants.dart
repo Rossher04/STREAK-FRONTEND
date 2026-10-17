@@ -23,13 +23,12 @@ class AppConstants {
   // Clave publicable de Stripe (modo prueba): --dart-define=STRIPE_PUBLISHABLE_KEY=pk_test_...
   static const String stripePublishableKey = String.fromEnvironment('STRIPE_PUBLISHABLE_KEY');
 
-  // Recuperar contraseña (pantalla 03). DECISIÓN PENDIENTE: enlace o contraseña temporal. El backend envía un
-  // ENLACE de un solo uso válido 1 hora (API del backend, "Recuperacion y sesiones"), así que el texto describe el enlace.
-  // Si se decide la contraseña temporal, solo hay que cambiar estas constantes.
+  // Recuperar contraseña (pantalla 03), RN-06: el backend envía al correo una CONTRASEÑA TEMPORAL de 10 caracteres
+  // que vence a las 24 horas; al entrar con ella la app obliga a cambiarla (RN-07, pantalla 06).
   static const String textoRecuperarPassword =
-      'Escribe el correo con el que te registraste y te enviaremos las instrucciones para recuperar tu acceso.';
+      'Escribe el correo con el que te registraste y te enviaremos una contraseña temporal para entrar.';
   static const String textoRecuperarEnviado =
-      'Si el correo está registrado, te llegará un enlace para elegir una contraseña nueva. Vence en una hora.';
+      'Si el correo está registrado, te llegará una contraseña temporal. Vence en 24 horas y al entrar te pediremos crear una nueva.';
 
   // Tiempos Críticos (RN-37)
   static const int minutosCierrePronostico = 5;
