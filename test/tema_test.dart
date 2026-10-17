@@ -68,7 +68,7 @@ void main() {
     for (final i in StreakIcons.values) {
       expect(File(i.ruta).existsSync(), isTrue, reason: i.ruta);
     }
-    expect(File('assets/logo/streak_logo_boceto.svg').existsSync(), isTrue);
+    expect(File('assets/logo/streak_logo.png').existsSync(), isTrue);
   });
 
   test('importe del plan desde /pro/estado/', () {

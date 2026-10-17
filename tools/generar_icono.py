@@ -1,97 +1,111 @@
-"""Genera el ícono de STREAK (assets/icons/icon.png 1024x1024 y icon_foreground.png).
+"""Genera el logo y los íconos de STREAK a partir del logo fuente (design/logo_fuente.jpg).
 
-Fondo #124E73, balón blanco y estela amarillo/naranja. Uso (desde streak_mobile/):
-    python tools/generar_icono.py
-Requiere Pillow. Luego: dart run flutter_launcher_icons
+Separa el balón y las estelas del fondo azul del logo fuente y los vuelve a montar sobre el
+azul de marca (#124E73) en cada tamaño, para que los bordes queden limpios.
+
+Uso (desde la raíz del repo, con Pillow instalado):
+    python tools/generar_icono.py [carpeta_salida_tienda]
+
+Escribe:
+    assets/logo/streak_logo.png          logo de la app (cuadro redondeado, fondo transparente)
+    assets/icons/icon.png                ícono base del launcher (Android antiguo e iOS)
+    assets/icons/icon_foreground.png     primer plano del ícono adaptativo de Android
+    <carpeta_salida_tienda>/play_icono_512.png        ícono de Google Play (512x512)
+    <carpeta_salida_tienda>/play_grafico_1024x500.png gráfico destacado de Google Play
+Después: dart run flutter_launcher_icons
 """
-import math
+import sys
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-AZUL = (0x12, 0x4E, 0x73, 255)
-AMARILLO = (0xF2, 0xB8, 0x07, 255)
-NARANJA = (0xD9, 0x42, 0x0B, 255)
-BLANCO = (255, 255, 255, 255)
-OSCURO = (0x1A, 0x20, 0x2C, 255)
-
-SS = 4  # supersampling para bordes suaves
-N = 1024 * SS
-
-
-def pentagono(cx, cy, r, rot):
-    return [(cx + r * math.cos(rot + i * 2 * math.pi / 5), cy + r * math.sin(rot + i * 2 * math.pi / 5)) for i in range(5)]
+RAIZ = Path(__file__).resolve().parent.parent
+FUENTE = RAIZ / 'design' / 'logo_fuente.jpg'
+AZUL = (18, 78, 115)        # brand  #124E73
+FONDO_APP = (9, 26, 37)     # bg     #091A25
+CREMA = (242, 240, 206)     # cream  #F2F0CE
+AMARILLO = (242, 184, 7)    # accent #F2B807
+GRIS = (159, 180, 196)      # muted  #9FB4C4
 
 
-def dibujar_arte(lienzo: Image.Image, escala: float):
-    """Dibuja estela + balón centrados en el lienzo; `escala` reduce todo (zona segura adaptativa)."""
-    c = N / 2
-    u = N * escala / 1024  # unidades de diseño (1024 = lienzo completo)
+def recortar_cuadro(im):
+    """Devuelve el cuadro azul del logo fuente (sin el margen negro)."""
+    px = im.load()
+    ancho, alto = im.size
 
-    # Estela: franjas diagonales que salen del balón hacia arriba a la izquierda.
-    capa = Image.new('RGBA', lienzo.size, (0, 0, 0, 0))
-    d = ImageDraw.Draw(capa)
-    bx, by = c + 70 * u, c + 50 * u  # centro del balón
-    dx, dy = -math.cos(math.radians(38)), -math.sin(math.radians(38))  # dirección de la estela
-    nx, ny = -dy, dx
-    franjas = [(AMARILLO, -150, 1.00, 520), (NARANJA, -20, 1.00, 600), (AMARILLO, 110, 0.9, 470)]
-    for color, desp, grosor, largo in franjas:
-        x0, y0 = bx + nx * desp * u, by + ny * desp * u
-        ancho = 78 * u * grosor
-        x1, y1 = x0 + dx * largo * u, y0 + dy * largo * u
-        # cuerpo que se afina hacia la cola
-        d.polygon(
-            [
-                (x0 + nx * ancho / 2, y0 + ny * ancho / 2),
-                (x0 - nx * ancho / 2, y0 - ny * ancho / 2),
-                (x1, y1),
-            ],
-            fill=color,
-        )
-    lienzo.alpha_composite(capa)
+    def es_azul(p):
+        return abs(p[0] - 18) < 30 and abs(p[1] - 78) < 30 and abs(p[2] - 115) < 30
 
-    # Balón.
-    r = 215 * u
-    balon = Image.new('RGBA', lienzo.size, (0, 0, 0, 0))
-    b = ImageDraw.Draw(balon)
-    b.ellipse([bx - r, by - r, bx + r, by + r], fill=BLANCO)
-    rot = -math.pi / 2
-    central = pentagono(bx, by, r * 0.36, rot)
-    b.polygon(central, fill=OSCURO)
-    for i in range(5):
-        a = rot + i * 2 * math.pi / 5
-        # costura del vértice al borde
-        b.line([(bx + r * 0.36 * math.cos(a), by + r * 0.36 * math.sin(a)), (bx + r * 0.72 * math.cos(a), by + r * 0.72 * math.sin(a))],
-               fill=OSCURO, width=int(9 * u))
-        # pentágono parcial entre costuras (se recorta con el círculo)
-        a2 = a + math.pi / 5
-        px, py = bx + r * 0.98 * math.cos(a2), by + r * 0.98 * math.sin(a2)
-        b.polygon(pentagono(px, py, r * 0.30, a2 + math.pi), fill=OSCURO)
-        b.line([(bx + r * 0.72 * math.cos(a), by + r * 0.72 * math.sin(a)), (px, py)], fill=OSCURO, width=int(9 * u))
-    mascara = Image.new('L', lienzo.size, 0)
-    ImageDraw.Draw(mascara).ellipse([bx - r, by - r, bx + r, by + r], fill=255)
-    recortado = Image.new('RGBA', lienzo.size, (0, 0, 0, 0))
-    recortado.paste(balon, (0, 0), mascara)
-    # aro oscuro fino para separar el balón de la estela
-    aro = Image.new('RGBA', lienzo.size, (0, 0, 0, 0))
-    ImageDraw.Draw(aro).ellipse([bx - r, by - r, bx + r, by + r], outline=OSCURO, width=int(10 * u))
-    lienzo.alpha_composite(recortado)
-    lienzo.alpha_composite(aro)
+    xs = [x for x in range(ancho) if es_azul(px[x, alto // 2]) or es_azul(px[x, int(alto * 0.75)])]
+    ys = [y for y in range(alto) if es_azul(px[int(ancho * 0.2), y])]
+    return im.crop((min(xs), min(ys), max(xs) + 1, max(ys) + 1))
+
+
+def separar_dibujo(cuadro):
+    """Balón y estelas con transparencia donde estaba el fondo azul (bordes suaves)."""
+    rgba = cuadro.convert('RGBA')
+    datos = []
+    for r, g, b, _ in rgba.getdata():
+        d = ((r - AZUL[0]) ** 2 + (g - AZUL[1]) ** 2 + (b - AZUL[2]) ** 2) ** 0.5
+        alfa = 0 if d < 28 else 255 if d > 70 else int((d - 28) / 42 * 255)
+        datos.append((r, g, b, alfa))
+    rgba.putdata(datos)
+    # Limpia el ruido de la compresión JPG que queda en el borde del cuadro.
+    margen = int(min(rgba.size) * 0.04)
+    limpio = Image.new('RGBA', rgba.size, (0, 0, 0, 0))
+    limpio.paste(rgba.crop((margen, margen, rgba.width - margen, rgba.height - margen)), (margen, margen))
+    return limpio.crop(limpio.getbbox())
+
+
+def montar(dibujo, lado, ocupacion, fondo, radio=0):
+    """Centra el dibujo en un lienzo cuadrado ocupando `ocupacion` del lado."""
+    lienzo = Image.new('RGBA', (lado, lado), (0, 0, 0, 0))
+    if fondo is not None:
+        ImageDraw.Draw(lienzo).rounded_rectangle((0, 0, lado - 1, lado - 1), radius=radio, fill=fondo + (255,))
+    escala = ocupacion * lado / max(dibujo.size)
+    dib = dibujo.resize((round(dibujo.width * escala), round(dibujo.height * escala)), Image.LANCZOS)
+    lienzo.alpha_composite(dib, ((lado - dib.width) // 2, (lado - dib.height) // 2))
+    return lienzo
+
+
+def fuente(nombre, tam):
+    return ImageFont.truetype(str(RAIZ / 'assets' / 'fonts' / nombre), tam)
+
+
+def grafico_tienda(dibujo):
+    ancho, alto = 1024, 500
+    g = Image.new('RGBA', (ancho, alto), FONDO_APP + (255,))
+    # Halo azul detrás del logo.
+    halo = Image.new('RGBA', (ancho, alto), (0, 0, 0, 0))
+    ImageDraw.Draw(halo).ellipse((20, 20, 480, 480), fill=AZUL + (110,))
+    g.alpha_composite(halo.filter(ImageFilter.GaussianBlur(60)))
+    logo = montar(dibujo, 300, 0.78, AZUL, radio=48)
+    g.alpha_composite(logo, (100, (alto - 300) // 2))
+    d = ImageDraw.Draw(g)
+    x = 460
+    d.text((x, 150), 'STREAK', font=fuente('Sora-700.ttf', 112), fill=CREMA)
+    lema = 'NO ROMPAS LA RACHA'
+    f_lema = fuente('Sora-600.ttf', 26)
+    cx = x + 4
+    for letra in lema:  # espaciado amplio como en la marca
+        d.text((cx, 290), letra, font=f_lema, fill=AMARILLO)
+        cx += d.textlength(letra, font=f_lema) + 6
+    d.text((x + 2, 345), 'Quinielas de fútbol por puntos entre amigos', font=fuente('Inter-Regular.otf', 26), fill=GRIS)
+    return g.convert('RGB')
 
 
 def main():
-    destino = Path(__file__).resolve().parent.parent / 'assets' / 'icons'
-    destino.mkdir(parents=True, exist_ok=True)
+    salida_tienda = Path(sys.argv[1]) if len(sys.argv) > 1 else RAIZ / 'build' / 'tienda'
+    salida_tienda.mkdir(parents=True, exist_ok=True)
+    dibujo = separar_dibujo(recortar_cuadro(Image.open(FUENTE).convert('RGB')))
 
-    completo = Image.new('RGBA', (N, N), AZUL)
-    dibujar_arte(completo, 1.0)
-    completo.resize((1024, 1024), Image.LANCZOS).convert('RGB').save(destino / 'icon.png')
-
-    # Primer plano del ícono adaptativo: transparente y dentro de la zona segura (~66 %).
-    frente = Image.new('RGBA', (N, N), (0, 0, 0, 0))
-    dibujar_arte(frente, 0.62)
-    frente.resize((1024, 1024), Image.LANCZOS).save(destino / 'icon_foreground.png')
-    print('ok', destino)
+    montar(dibujo, 1024, 0.78, AZUL, radio=160).save(RAIZ / 'assets' / 'logo' / 'streak_logo.png')
+    montar(dibujo, 1024, 0.76, AZUL).convert('RGB').save(RAIZ / 'assets' / 'icons' / 'icon.png')
+    # Zona segura del ícono adaptativo: el contenido debe caber en el 66 % central.
+    montar(dibujo, 1024, 0.56, None).save(RAIZ / 'assets' / 'icons' / 'icon_foreground.png')
+    montar(dibujo, 512, 0.76, AZUL).convert('RGB').save(salida_tienda / 'play_icono_512.png')
+    grafico_tienda(dibujo).save(salida_tienda / 'play_grafico_1024x500.png')
+    print('Listo:', salida_tienda)
 
 
 if __name__ == '__main__':

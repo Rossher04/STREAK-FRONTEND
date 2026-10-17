@@ -1,23 +1,23 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import '../constants/app_constants.dart';
 import '../theme/streak_theme.dart';
 
-/// Logo (boceto PROVISIONAL: `assets/logo/streak_logo_boceto.svg`; el definitivo usará el mismo nombre).
+/// Logo de STREAK (`assets/logo/streak_logo.png`, generado con `tools/generar_icono.py`).
 class LogoStreak extends StatelessWidget {
   const LogoStreak({super.key, this.lado = 68});
 
   final double lado;
 
   @override
-  Widget build(BuildContext context) => SvgPicture.asset(
-        'assets/logo/streak_logo_boceto.svg',
+  Widget build(BuildContext context) => Image.asset(
+        'assets/logo/streak_logo.png',
         width: lado,
         height: lado,
-        semanticsLabel: AppConstants.appName,
+        filterQuality: FilterQuality.medium,
+        semanticLabel: AppConstants.appName,
       );
 }
 
